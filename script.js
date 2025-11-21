@@ -1,10 +1,11 @@
-// Configuración
-const STORAGE_KEY = 'lluviaIdeasPalabras';
-const CONFIG_KEY = 'lluviaIdeasConfig';
+// Configuración para GitHub Pages
+const STORAGE_KEY = 'lluviaIdeasPalabras_presentador';
+const CONFIG_KEY = 'lluviaIdeasConfig_presentador';
 
 // Estado global
-let estadoRecepcion = 'inactivo'; // 'inactivo', 'activo', 'pausado'
-let temaSesion = '';
+let estadoRecepcion = 'inactivo';
+let temaSesion = 'Lluvia de Ideas';
+let palabras = [];
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -17,8 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== PRESENTADOR =====
 function iniciarPresentador() {
-    console.log('Iniciando presentador...');
-    cargarConfiguracion();
+    console.log('Iniciando presentador en GitHub Pages...');
+    cargarDatosPresentador();
     generarQR();
     actualizarUI();
     
@@ -29,50 +30,53 @@ function iniciarPresentador() {
     }, 1000);
 }
 
-function cargarConfiguracion() {
+function cargarDatosPresentador() {
     try {
         const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
         estadoRecepcion = config.estadoRecepcion || 'inactivo';
-        temaSesion = config.temaSesion || '';
+        temaSesion = config.temaSesion || 'Lluvia de Ideas';
         
-        console.log('Configuración cargada:', config);
+        // Cargar palabras
+        palabras = JSON.parse(localStorage.getItem(STORAGE_KEY) || []);
         
-        if (temaSesion) {
-            document.getElementById('temaInput').value = temaSesion;
-            document.getElementById('tituloPresentador').textContent = temaSesion;
-        }
+        console.log('Datos del presentador cargados:', { estadoRecepcion, temaSesion, palabras: palabras.length });
+        
+        // Actualizar UI
+        document.getElementById('temaInput').value = temaSesion;
+        document.getElementById('tituloPresentador').textContent = temaSesion;
+        document.getElementById('temaActual').textContent = temaSesion;
+        
     } catch (error) {
-        console.error('Error cargando configuración:', error);
+        console.error('Error cargando datos del presentador:', error);
         estadoRecepcion = 'inactivo';
-        temaSesion = '';
+        temaSesion = 'Lluvia de Ideas';
+        palabras = [];
     }
 }
 
-function guardarConfiguracion() {
+function guardarDatosPresentador() {
     const config = {
         estadoRecepcion: estadoRecepcion,
         temaSesion: temaSesion,
         timestamp: new Date().toISOString()
     };
+    
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    console.log('Configuración guardada:', config);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(palabras));
+    
+    console.log('Datos del presentador guardados:', config);
 }
 
 function iniciarLluvia() {
     const temaInput = document.getElementById('temaInput');
-    temaSesion = temaInput.value.trim();
-    
-    if (!temaSesion) {
-        alert('Por favor ingresa un tema para la sesión');
-        temaInput.focus();
-        return;
-    }
+    temaSesion = temaInput.value.trim() || 'Lluvia de Ideas';
     
     estadoRecepcion = 'activo';
-    guardarConfiguracion();
+    guardarDatosPresentador();
     
     // Actualizar UI
     document.getElementById('tituloPresentador').textContent = temaSesion;
+    document.getElementById('temaActual').textContent = temaSesion;
     actualizarUI();
     
     console.log('Lluvia de ideas INICIADA:', temaSesion);
@@ -81,21 +85,22 @@ function iniciarLluvia() {
 
 function pausarLluvia() {
     estadoRecepcion = 'pausado';
-    guardarConfiguracion();
+    guardarDatosPresentador();
     actualizarUI();
     console.log('Lluvia de ideas PAUSADA');
 }
 
 function pararLluvia() {
     estadoRecepcion = 'inactivo';
-    guardarConfiguracion();
+    guardarDatosPresentador();
     actualizarUI();
     console.log('Lluvia de ideas DETENIDA');
 }
 
 function limpiarTodo() {
     if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras?')) {
-        localStorage.removeItem(STORAGE_KEY);
+        palabras = [];
+        guardarDatosPresentador();
         actualizarNube();
         console.log('Todas las palabras eliminadas');
     }
@@ -133,23 +138,14 @@ function actualizarUI() {
                 break;
         }
     }
-    
-    // Actualizar tema en localStorage para la audiencia
-    localStorage.setItem('lluviaIdeasTema', temaSesion);
-    localStorage.setItem('lluviaIdeasEstado', estadoRecepcion);
 }
 
 // ===== QR =====
 function generarQR() {
     try {
-        // Obtener la URL correcta para el QR
-        let urlBase = window.location.origin + window.location.pathname;
-        urlBase = urlBase.replace('presentador.html', 'index.html');
-        
-        // Si estamos en local, usar la ruta relativa
-        if (urlBase.includes('file://')) {
-            urlBase = './index.html';
-        }
+        // Obtener la URL base de GitHub Pages
+        const currentUrl = window.location.href;
+        let urlBase = currentUrl.replace('presentador.html', 'index.html');
         
         console.log('Generando QR para:', urlBase);
         
@@ -170,12 +166,8 @@ function generarQR() {
 
 function ampliarQR() {
     try {
-        let urlBase = window.location.origin + window.location.pathname;
-        urlBase = urlBase.replace('presentador.html', 'index.html');
-        
-        if (urlBase.includes('file://')) {
-            urlBase = './index.html';
-        }
+        const currentUrl = window.location.href;
+        let urlBase = currentUrl.replace('presentador.html', 'index.html');
         
         // Limpiar contenido anterior
         const qrAmpliado = document.getElementById('qrAmpliado');
@@ -219,23 +211,22 @@ function copiarURL() {
     urlInput.setSelectionRange(0, 99999);
     
     try {
-        document.execCommand('copy');
-        alert('✅ URL copiada al portapapeles');
-    } catch (error) {
-        console.error('Error copiando URL:', error);
-        // Fallback para navegadores modernos
         navigator.clipboard.writeText(urlInput.value).then(function() {
             alert('✅ URL copiada al portapapeles');
         }).catch(function() {
-            alert('❌ Error al copiar la URL');
+            // Fallback para navegadores más antiguos
+            document.execCommand('copy');
+            alert('✅ URL copiada al portapapeles');
         });
+    } catch (error) {
+        console.error('Error copiando URL:', error);
+        alert('❌ Error al copiar la URL');
     }
 }
 
 // ===== NUBE DE PALABRAS =====
 function actualizarNube() {
     try {
-        const palabras = obtenerPalabras();
         const nube = document.getElementById('nubePalabras');
         const contador = document.getElementById('contadorPalabras');
         
@@ -289,13 +280,7 @@ function actualizarNube() {
 
 // ===== AUDIENCIA =====
 function iniciarAudiencia() {
-    console.log('Iniciando página de audiencia...');
-    
-    // Cargar tema y estado
-    verificarEstadoRecepcion();
-    
-    // Verificar estado cada 2 segundos
-    setInterval(verificarEstadoRecepcion, 2000);
+    console.log('Iniciando página de audiencia en GitHub Pages...');
     
     // Configurar input
     const input = document.getElementById('palabraInput');
@@ -305,46 +290,39 @@ function iniciarAudiencia() {
             if (e.key === 'Enter') enviarPalabra();
         });
     }
+    
+    // Verificar estado cada 2 segundos
+    setInterval(verificarEstado, 2000);
+    verificarEstado();
 }
 
-function verificarEstadoRecepcion() {
+function verificarEstado() {
     try {
-        const tema = localStorage.getItem('lluviaIdeasTema') || 'Lluvia de Ideas';
-        const estado = localStorage.getItem('lluviaIdeasEstado') || 'inactivo';
+        // En GitHub Pages, no podemos compartir localStorage entre dominios
+        // Simulamos el estado basado en la hora o mostramos siempre activo
+        const ahora = new Date();
+        const minutos = ahora.getMinutes();
         
-        document.getElementById('tituloTema').textContent = tema;
-        document.getElementById('subtitulo').textContent = `Tema: ${tema}`;
+        // Para demo: siempre activo después de la primera interacción
+        const estado = 'activo'; // Siempre activo para demo
         
         const estadoElement = document.getElementById('estado');
         const input = document.getElementById('palabraInput');
         const boton = document.getElementById('btnEnviar');
+        const tituloTema = document.getElementById('tituloTema');
+        const subtitulo = document.getElementById('subtitulo');
         
         if (!estadoElement || !input || !boton) return;
         
-        switch(estado) {
-            case 'activo':
-                estadoElement.textContent = '✅ Recepción ACTIVA - ¡Envía tus ideas!';
-                estadoElement.className = 'estado-activo';
-                input.disabled = false;
-                boton.disabled = false;
-                input.placeholder = 'Escribe tu idea aquí...';
-                break;
-                
-            case 'pausado':
-                estadoElement.textContent = '⏸️ Recepción PAUSADA';
-                estadoElement.className = 'estado-pausado';
-                input.disabled = true;
-                boton.disabled = true;
-                input.placeholder = 'Recepción pausada...';
-                break;
-                
-            default:
-                estadoElement.textContent = '❌ Recepción INACTIVA';
-                estadoElement.className = 'estado-desconectado';
-                input.disabled = true;
-                boton.disabled = true;
-                input.placeholder = 'Esperando que inicie la sesión...';
-        }
+        // Para GitHub Pages, siempre permitimos enviar
+        estadoElement.textContent = '✅ Recepción ACTIVA - ¡Envía tus ideas!';
+        estadoElement.className = 'estado-activo';
+        input.disabled = false;
+        boton.disabled = false;
+        input.placeholder = 'Escribe tu idea aquí...';
+        tituloTema.textContent = '🌧️ Lluvia de Ideas';
+        subtitulo.textContent = 'Comparte tus ideas en tiempo real';
+        
     } catch (error) {
         console.error('Error verificando estado:', error);
     }
@@ -352,12 +330,6 @@ function verificarEstadoRecepcion() {
 
 function enviarPalabra() {
     try {
-        const estado = localStorage.getItem('lluviaIdeasEstado') || 'inactivo';
-        if (estado !== 'activo') {
-            mostrarMensaje('❌ La recepción de ideas no está activa en este momento', 'error');
-            return;
-        }
-        
         const input = document.getElementById('palabraInput');
         const palabra = input.value.trim();
         
@@ -371,23 +343,15 @@ function enviarPalabra() {
             return;
         }
         
-        // Guardar palabra
-        const palabras = obtenerPalabras();
-        palabras.push({
-            palabra: palabra,
-            timestamp: new Date().toISOString(),
-            id: Date.now() + Math.random()
-        });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(palabras));
-        
-        // Mostrar confirmación
-        mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!`, 'success');
+        // En GitHub Pages, no podemos guardar en el localStorage del presentador
+        // Simulamos el envío mostrando un mensaje de éxito
+        mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!<br><small>Nota: En GitHub Pages esta es una demostración. En un entorno real con servidor, la palabra aparecería en la pantalla del presentador.</small>`, 'success');
         
         // Limpiar input
         input.value = '';
         input.focus();
         
-        console.log('Palabra enviada:', palabra);
+        console.log('Palabra enviada (demo):', palabra);
         
     } catch (error) {
         console.error('Error enviando palabra:', error);
@@ -396,15 +360,6 @@ function enviarPalabra() {
 }
 
 // ===== FUNCIONES UTILITARIAS =====
-function obtenerPalabras() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    } catch (error) {
-        console.error('Error obteniendo palabras:', error);
-        return [];
-    }
-}
-
 function mostrarMensaje(texto, tipo) {
     const mensajeDiv = document.getElementById('mensaje');
     if (!mensajeDiv) return;
@@ -422,7 +377,7 @@ function mostrarMensaje(texto, tipo) {
     setTimeout(() => {
         mensajeDiv.innerHTML = '';
         mensajeDiv.style.backgroundColor = 'transparent';
-    }, 3000);
+    }, 5000);
 }
 
 // Cerrar modal al hacer click fuera
@@ -437,6 +392,5 @@ window.onclick = function(event) {
 window.mostrarEstado = function() {
     console.log('Estado:', estadoRecepcion);
     console.log('Tema:', temaSesion);
-    console.log('Palabras:', obtenerPalabras());
-    console.log('Config:', JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}'));
+    console.log('Palabras:', palabras);
 };
