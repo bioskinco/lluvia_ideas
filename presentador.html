@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control del Presentador - Lluvia de Ideas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="presentador-body">
+    <div class="presentador-container">
+        <!-- Panel de Control -->
+        <div class="panel-control">
+            <h1>🎯 Control del Presentador</h1>
+            
+            <div class="controles">
+                <div class="control-grupo">
+                    <label for="temaInput">Tema de la sesión:</label>
+                    <input type="text" id="temaInput" placeholder="Ej: Ideas para marketing digital">
+                </div>
+                
+                <div class="botones-control">
+                    <button onclick="iniciarLluvia()" id="btnIniciar" class="btn-uniforme btn-iniciar">🚀 Iniciar Lluvia de Ideas</button>
+                    <button onclick="pausarLluvia()" id="btnPausar" class="btn-uniforme btn-pausar" disabled>⏸️ Pausar Lluvia</button>
+                    <button onclick="pararLluvia()" id="btnParar" class="btn-uniforme btn-parar" disabled>⏹️ Parar Lluvia</button>
+                    <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Todo</button>
+                </div>
+            </div>
+            
+            <div class="estados">
+                <div class="estado-item">
+                    <span>Estado:</span>
+                    <span id="estadoRecepcion" class="estado-inactivo">Inactivo</span>
+                </div>
+                <div class="estado-item">
+                    <span>Palabras recibidas:</span>
+                    <span id="contadorPalabras" class="contador">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Section -->
+        <div class="qr-section-presentador">
+            <h3>📱 Código QR para la audiencia</h3>
+            <div class="qr-container-pequeno" id="qrPequeno" onclick="ampliarQR()">
+                <div id="qrCode"></div>
+                <p class="qr-leyenda">Click para ampliar</p>
+            </div>
+            
+            <div class="url-alternativa">
+                <p><strong>URL para compartir:</strong></p>
+                <input type="text" id="urlInput" readonly>
+                <button onclick="copiarURL()" class="btn-uniforme btn-copiar">📋 Copiar URL</button>
+            </div>
+        </div>
+
+        <!-- Modal QR Ampliado -->
+        <div id="modalQR" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="cerrarQR()">&times;</span>
+                <h2>📱 Escanea para participar</h2>
+                <div class="qr-modal-container">
+                    <div id="qrAmpliado" class="qr-ampliado"></div>
+                </div>
+                <p>La audiencia puede escanear este código para enviar sus ideas</p>
+                <button onclick="cerrarQR()" class="btn-uniforme btn-cerrar">Cerrar</button>
+            </div>
+        </div>
+
+        <!-- Nube de Palabras -->
+        <div class="nube-container">
+            <h2 id="tituloPresentador">Lluvia de Ideas</h2>
+            <div id="nubePalabras" class="nube-palabras">
+                <div class="placeholder">Esperando que inicies la lluvia de ideas...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librería QR -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participa en la Lluvia de Ideas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="pagina-audiencia">
+    <div class="container">
+        <div class="header">
+            <h1 id="tituloTema">🌧️ Lluvia de Ideas</h1>
+            <p id="subtitulo">Comparte tus ideas en tiempo real</p>
+        </div>
+        
+        <div class="input-section">
+            <input type="text" id="palabraInput" placeholder="Escribe tu idea aquí..." maxlength="20">
+            <button onclick="enviarPalabra()" id="btnEnviar">Enviar Idea ✨</button>
+        </div>
+        
+        <div id="mensaje" class="mensaje"></div>
+        
+        <div class="estado-conexion">
+            <div id="estado" class="estado-desconectado">⏸️ Recepción pausada</div>
+        </div>
+        
+        <div class="info">
+            <p>💡 <strong>Instrucciones:</strong></p>
+            <ol>
+                <li>Escribe tu palabra o idea corta</li>
+                <li>Presiona Enviar o Enter</li>
+                <li>¡Tu idea aparecerá en la pantalla principal!</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
