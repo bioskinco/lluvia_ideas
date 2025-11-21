@@ -15,7 +15,7 @@
             <div class="controles">
                 <div class="control-grupo">
                     <label for="temaInput">Tema de la sesión:</label>
-                    <input type="text" id="temaInput" placeholder="Ej: Ideas para marketing digital">
+                    <input type="text" id="temaInput" placeholder="Ej: Ideas para marketing digital" value="Lluvia de Ideas">
                 </div>
                 
                 <div class="botones-control">
@@ -34,6 +34,10 @@
                 <div class="estado-item">
                     <span>Palabras recibidas:</span>
                     <span id="contadorPalabras" class="contador">0</span>
+                </div>
+                <div class="estado-item">
+                    <span>Tema actual:</span>
+                    <span id="temaActual">Lluvia de Ideas</span>
                 </div>
             </div>
         </div>
@@ -75,7 +79,6 @@
         </div>
     </div>
 
-    <!-- Librería QR -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="script.js"></script>
 </body>
