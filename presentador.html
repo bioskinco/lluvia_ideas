@@ -23,6 +23,19 @@
                     <button onclick="pausarLluvia()" id="btnPausar" class="btn-uniforme btn-pausar" disabled>⏸️ Pausar Lluvia</button>
                     <button onclick="pararLluvia()" id="btnParar" class="btn-uniforme btn-parar" disabled>⏹️ Parar Lluvia</button>
                     <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Todo</button>
+                    <button onclick="generarNuevoQR()" class="btn-uniforme btn-qr">🔄 Generar Nuevo QR</button>
+                    <button onclick="exportarEnunciado()" class="btn-uniforme btn-exportar">💾 Exportar Enunciado</button>
+                </div>
+
+                <div class="configuracion">
+                    <label>
+                        <input type="checkbox" id="autoLimpiar" checked>
+                        Auto-limpiar cada 2 horas
+                    </label>
+                    <label>
+                        <input type="checkbox" id="modoArrastre" checked>
+                        Modo arrastre activado
+                    </label>
                 </div>
             </div>
             
@@ -36,8 +49,12 @@
                     <span id="contadorPalabras" class="contador">0</span>
                 </div>
                 <div class="estado-item">
-                    <span>Tema actual:</span>
-                    <span id="temaActual">Lluvia de Ideas</span>
+                    <span>ID Sesión:</span>
+                    <span id="sesionId">-</span>
+                </div>
+                <div class="estado-item">
+                    <span>Próxima limpieza:</span>
+                    <span id="tiempoLimpiar">-</span>
                 </div>
             </div>
         </div>
@@ -72,7 +89,21 @@
 
         <!-- Nube de Palabras -->
         <div class="nube-container">
-            <h2 id="tituloPresentador">Lluvia de Ideas</h2>
+            <div class="nube-header">
+                <h2 id="tituloPresentador">Lluvia de Ideas</h2>
+                <div class="controles-nube">
+                    <button onclick="organizarAleatorio()" class="btn-control">🔀 Aleatorio</button>
+                    <button onclick="organizarGrid()" class="btn-control">🔲 Rejilla</button>
+                    <button onclick="limpiarEnunciado()" class="btn-control">🗑️ Limpiar Orden</button>
+                </div>
+            </div>
+            
+            <div id="areaEnunciado" class="area-enunciado">
+                <div class="enunciado-guia">
+                    💡 Arrastra las palabras para formar un enunciado. Las palabras nuevas aparecen abajo.
+                </div>
+            </div>
+            
             <div id="nubePalabras" class="nube-palabras">
                 <div class="placeholder">Esperando que inicies la lluvia de ideas...</div>
             </div>
