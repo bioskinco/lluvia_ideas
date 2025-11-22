@@ -1,11 +1,11 @@
 // Configuración
-const STORAGE_KEY = 'lluviaIdeas_sesion';
-const TEMP_LIMIT = 2 * 60 * 60 * 1000; // 2 horas en milisegundos
+const CONFIG_KEY = 'lluviaIdeas_config';
 let estadoRecepcion = 'inactivo';
 let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
 let sesionId = null;
-let tiempoInicioSesion = null;
+let gistId = null;
+let githubToken = null;
 let modoArrastre = true;
 
 // ===== INICIALIZACIÓN =====
@@ -17,45 +17,246 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ===== GESTIÓN DE ALMACENAMIENTO TEMPORAL =====
+// ===== CONFIGURACIÓN Y ALMACENAMIENTO =====
+function cargarConfiguracion() {
+    try {
+        const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+        gistId = config.gistId || null;
+        githubToken = config.githubToken || null;
+        temaSesion = config.temaSesion || 'Lluvia de Ideas';
+        sesionId = config.sesionId || generarIdSesion();
+        
+        if (document.getElementById('gistId')) {
+            document.getElementById('gistId').value = gistId || '';
+        }
+        if (document.getElementById('githubToken')) {
+            document.getElementById('githubToken').value = githubToken || '';
+        }
+        if (document.getElementById('temaInput')) {
+            document.getElementById('temaInput').value = temaSesion;
+        }
+        if (document.getElementById('gistActual')) {
+            document.getElementById('gistActual').textContent = gistId || 'No configurado';
+        }
+        
+        console.log('Configuración cargada:', { gistId, temaSesion, sesionId });
+        
+    } catch (error) {
+        console.error('Error cargando configuración:', error);
+    }
+}
+
+function guardarConfiguracion() {
+    const config = {
+        gistId: gistId,
+        githubToken: githubToken,
+        temaSesion: temaSesion,
+        sesionId: sesionId,
+        timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    console.log('Configuración guardada');
+}
+
+function guardarConfig() {
+    const gistInput = document.getElementById('gistId');
+    const tokenInput = document.getElementById('githubToken');
+    
+    if (gistInput) gistId = gistInput.value.trim();
+    if (tokenInput) githubToken = tokenInput.value.trim();
+    
+    guardarConfiguracion();
+    alert('✅ Configuración guardada');
+    
+    if (gistId) {
+        cargarDatosDesdeGist();
+    }
+}
+
 function generarIdSesion() {
     return 'sesion_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-function verificarCaducidad() {
-    const ahora = Date.now();
-    if (tiempoInicioSesion && (ahora - tiempoInicioSesion) > TEMP_LIMIT) {
-        if (confirm('La sesión ha caducado (2 horas). ¿Quieres limpiar todas las palabras?')) {
-            limpiarTodo();
+// ===== GITHUB GISTS API =====
+async function crearNuevoGist() {
+    try {
+        const datosIniciales = {
+            tema: temaSesion,
+            estado: estadoRecepcion,
+            sesionId: sesionId,
+            palabras: [],
+            timestamp: new Date().toISOString()
+        };
+        
+        const response = await fetch('https://api.github.com/gists', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(githubToken && { 'Authorization': `token ${githubToken}` })
+            },
+            body: JSON.stringify({
+                description: `Lluvia de Ideas - ${temaSesion}`,
+                public: false,
+                files: {
+                    'palabras.json': {
+                        content: JSON.stringify(datosIniciales, null, 2)
+                    }
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
         }
-        tiempoInicioSesion = ahora;
-    }
-    
-    // Actualizar contador
-    const tiempoElement = document.getElementById('tiempoLimpiar');
-    if (tiempoElement && tiempoInicioSesion) {
-        const tiempoRestante = TEMP_LIMIT - (ahora - tiempoInicioSesion);
-        if (tiempoRestante > 0) {
-            const horas = Math.floor(tiempoRestante / (60 * 60 * 1000));
-            const minutos = Math.floor((tiempoRestante % (60 * 60 * 1000)) / (60 * 1000));
-            tiempoElement.textContent = `${horas}h ${minutos}m`;
-        } else {
-            tiempoElement.textContent = '¡Caducado!';
-        }
+        
+        const data = await response.json();
+        gistId = data.id;
+        guardarConfiguracion();
+        
+        document.getElementById('gistId').value = gistId;
+        document.getElementById('gistActual').textContent = gistId;
+        
+        console.log('Nuevo Gist creado:', gistId);
+        return gistId;
+        
+    } catch (error) {
+        console.error('Error creando Gist:', error);
+        alert('❌ Error creando base de datos. Usando almacenamiento local.');
+        return null;
     }
 }
 
-function limpiarPalabrasCaducadas() {
-    const ahora = Date.now();
-    const palabrasFiltradas = palabras.filter(palabra => {
-        const tiempoPalabra = new Date(palabra.timestamp).getTime();
-        return (ahora - tiempoPalabra) < TEMP_LIMIT;
-    });
+async function cargarDatosDesdeGist() {
+    if (!gistId) {
+        console.log('No hay Gist ID configurado');
+        return;
+    }
     
-    if (palabrasFiltradas.length !== palabras.length) {
-        palabras = palabrasFiltradas;
-        guardarDatosPresentador();
-        console.log('Palabras caducadas eliminadas');
+    try {
+        const response = await fetch(`https://api.github.com/gists/${gistId}`);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const contenido = JSON.parse(data.files['palabras.json'].content);
+        
+        palabras = contenido.palabras || [];
+        temaSesion = contenido.tema || temaSesion;
+        estadoRecepcion = contenido.estado || estadoRecepcion;
+        sesionId = contenido.sesionId || sesionId;
+        
+        // Actualizar UI
+        document.getElementById('temaInput').value = temaSesion;
+        document.getElementById('tituloPresentador').textContent = temaSesion;
+        document.getElementById('sesionId').textContent = sesionId;
+        document.getElementById('gistActual').textContent = gistId;
+        document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+        
+        actualizarUI();
+        actualizarNube();
+        
+        console.log('Datos cargados desde Gist:', { palabras: palabras.length, temaSesion, estadoRecepcion });
+        
+    } catch (error) {
+        console.error('Error cargando desde Gist:', error);
+        alert('❌ Error cargando base de datos. Verifica el ID del Gist.');
+    }
+}
+
+async function guardarDatosEnGist() {
+    if (!gistId) {
+        console.log('No hay Gist ID para guardar');
+        return false;
+    }
+    
+    try {
+        const datos = {
+            tema: temaSesion,
+            estado: estadoRecepcion,
+            sesionId: sesionId,
+            palabras: palabras,
+            timestamp: new Date().toISOString()
+        };
+        
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(githubToken && { 'Authorization': `token ${githubToken}` })
+            },
+            body: JSON.stringify({
+                description: `Lluvia de Ideas - ${temaSesion}`,
+                files: {
+                    'palabras.json': {
+                        content: JSON.stringify(datos, null, 2)
+                    }
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+        console.log('Datos guardados en Gist');
+        return true;
+        
+    } catch (error) {
+        console.error('Error guardando en Gist:', error);
+        return false;
+    }
+}
+
+async function limpiarGist() {
+    if (!gistId) return;
+    
+    try {
+        palabras = [];
+        const datos = {
+            tema: temaSesion,
+            estado: estadoRecepcion,
+            sesionId: sesionId,
+            palabras: [],
+            timestamp: new Date().toISOString()
+        };
+        
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(githubToken && { 'Authorization': `token ${githubToken}` })
+            },
+            body: JSON.stringify({
+                files: {
+                    'palabras.json': {
+                        content: JSON.stringify(datos, null, 2)
+                    }
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        actualizarNube();
+        console.log('Gist limpiado');
+        
+    } catch (error) {
+        console.error('Error limpiando Gist:', error);
+    }
+}
+
+function cargarGistExistente() {
+    const gistInput = document.getElementById('gistId');
+    if (gistInput && gistInput.value.trim()) {
+        gistId = gistInput.value.trim();
+        guardarConfiguracion();
+        cargarDatosDesdeGist();
     }
 }
 
@@ -66,7 +267,6 @@ function inicializarArrastre() {
     const areaEnunciado = document.getElementById('areaEnunciado');
     const nubePalabras = document.getElementById('nubePalabras');
     
-    // Hacer todas las palabras arrastrables
     document.querySelectorAll('.palabra').forEach(palabra => {
         palabra.setAttribute('draggable', 'true');
         
@@ -82,7 +282,6 @@ function inicializarArrastre() {
         });
     });
     
-    // Configurar área de enunciado como destino
     areaEnunciado.addEventListener('dragover', function(e) {
         e.preventDefault();
         areaEnunciado.classList.add('palabra-zona-objetivo');
@@ -99,7 +298,6 @@ function inicializarArrastre() {
         const texto = e.dataTransfer.getData('text/plain');
         agregarPalabraAEnunciado(texto);
         
-        // Remover la clase de arrastre de todas las palabras
         document.querySelectorAll('.arrastrando').forEach(p => {
             p.classList.remove('arrastrando');
             p.style.display = 'block';
@@ -110,17 +308,14 @@ function inicializarArrastre() {
 function agregarPalabraAEnunciado(texto) {
     const areaEnunciado = document.getElementById('areaEnunciado');
     
-    // Remover mensaje guía si existe
     const guia = areaEnunciado.querySelector('.enunciado-guia');
     if (guia) guia.remove();
     
-    // Crear elemento de palabra en enunciado
     const palabraElement = document.createElement('div');
     palabraElement.className = 'palabra en-enunciado';
     palabraElement.textContent = texto;
     palabraElement.setAttribute('draggable', 'true');
     
-    // Hacerla arrastrable también desde el enunciado
     palabraElement.addEventListener('dragstart', function(e) {
         e.dataTransfer.setData('text/plain', texto);
         palabraElement.classList.add('arrastrando');
@@ -130,7 +325,6 @@ function agregarPalabraAEnunciado(texto) {
         palabraElement.classList.remove('arrastrando');
     });
     
-    // Doble click para remover del enunciado
     palabraElement.addEventListener('dblclick', function() {
         palabraElement.remove();
         actualizarEstadoAreaEnunciado();
@@ -146,11 +340,10 @@ function actualizarEstadoAreaEnunciado() {
     
     if (!tienePalabras) {
         areaEnunciado.classList.remove('con-palabras');
-        // Restaurar guía si no hay palabras
         if (!areaEnunciado.querySelector('.enunciado-guia')) {
             const guia = document.createElement('div');
             guia.className = 'enunciado-guia';
-            guia.textContent = '💡 Arrastra las palabras para formar un enunciado. Las palabras nuevas aparecen abajo.';
+            guia.textContent = '💡 Arrastra las palabras para formar un enunciado';
             areaEnunciado.appendChild(guia);
         }
     }
@@ -186,7 +379,6 @@ function organizarAleatorio() {
     const nube = document.getElementById('nubePalabras');
     const palabrasElements = Array.from(nube.querySelectorAll('.palabra'));
     
-    // Mezclar aleatoriamente
     for (let i = palabrasElements.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         nube.appendChild(palabrasElements[j]);
@@ -199,137 +391,84 @@ function organizarGrid() {
 }
 
 // ===== PRESENTADOR =====
-function iniciarPresentador() {
+async function iniciarPresentador() {
     console.log('Iniciando presentador...');
-    cargarDatosPresentador();
-    generarNuevoQR();
+    cargarConfiguracion();
     actualizarUI();
     
-    // Configurar modo arrastre
-    const checkboxArrastre = document.getElementById('modoArrastre');
-    if (checkboxArrastre) {
-        checkboxArrastre.checked = modoArrastre;
-        checkboxArrastre.addEventListener('change', function() {
-            modoArrastre = this.checked;
-        });
+    // Cargar datos existentes si hay Gist
+    if (gistId) {
+        await cargarDatosDesdeGist();
     }
     
-    // Configurar auto-limpiar
-    const checkboxAutoLimpiar = document.getElementById('autoLimpiar');
-    if (checkboxAutoLimpiar) {
-        checkboxAutoLimpiar.addEventListener('change', function() {
-            if (!this.checked) {
-                document.getElementById('tiempoLimpiar').textContent = 'Desactivado';
-            }
-        });
-    }
+    generarNuevoQR();
     
-    setInterval(function() {
-        actualizarNube();
-        sincronizarDatos();
-        verificarCaducidad();
-        
-        if (document.getElementById('autoLimpiar')?.checked) {
-            limpiarPalabrasCaducadas();
-        }
-    }, 1000);
+    // Actualizar cada 3 segundos
+    setInterval(async function() {
+        await cargarDatosDesdeGist();
+    }, 3000);
 }
 
-function cargarDatosPresentador() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        estadoRecepcion = saved.estadoRecepcion || 'inactivo';
-        temaSesion = saved.temaSesion || 'Lluvia de Ideas';
-        palabras = saved.palabras || [];
-        sesionId = saved.sesionId || generarIdSesion();
-        tiempoInicioSesion = saved.tiempoInicioSesion || Date.now();
-        modoArrastre = saved.modoArrastre !== undefined ? saved.modoArrastre : true;
-        
-        console.log('Datos cargados:', { estadoRecepcion, temaSesion, palabras: palabras.length, sesionId });
-        
-        document.getElementById('temaInput').value = temaSesion;
-        document.getElementById('tituloPresentador').textContent = temaSesion;
-        document.getElementById('sesionId').textContent = sesionId;
-        
-    } catch (error) {
-        console.error('Error cargando datos:', error);
-        resetearDatos();
-    }
-}
-
-function guardarDatosPresentador() {
-    const datos = {
-        estadoRecepcion: estadoRecepcion,
-        temaSesion: temaSesion,
-        palabras: palabras,
-        sesionId: sesionId,
-        tiempoInicioSesion: tiempoInicioSesion,
-        modoArrastre: modoArrastre,
-        timestamp: new Date().toISOString()
-    };
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
-    return datos;
-}
-
-function sincronizarDatos() {
-    guardarDatosPresentador();
-}
-
-function resetearDatos() {
-    estadoRecepcion = 'inactivo';
-    temaSesion = 'Lluvia de Ideas';
-    palabras = [];
-    sesionId = generarIdSesion();
-    tiempoInicioSesion = Date.now();
-    modoArrastre = true;
-    guardarDatosPresentador();
-}
-
-function iniciarLluvia() {
+async function iniciarLluvia() {
     const temaInput = document.getElementById('temaInput');
     temaSesion = temaInput.value.trim() || 'Lluvia de Ideas';
     
     estadoRecepcion = 'activo';
-    if (!sesionId) {
-        sesionId = generarIdSesion();
-    }
-    tiempoInicioSesion = Date.now();
+    sesionId = generarIdSesion();
     
-    guardarDatosPresentador();
+    // Crear nueva base de datos (Gist)
+    const nuevoGistId = await crearNuevoGist();
+    if (!nuevoGistId) {
+        // Fallback a localStorage
+        alert('⚠️ Usando almacenamiento local (solo funciona en este navegador)');
+    }
+    
+    guardarConfiguracion();
     generarNuevoQR();
     
     document.getElementById('tituloPresentador').textContent = temaSesion;
     document.getElementById('sesionId').textContent = sesionId;
     actualizarUI();
     
-    console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId);
-    alert('✅ Lluvia de ideas INICIADA\n\nNuevo QR generado para la audiencia.');
+    console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId, gistId);
+    alert('✅ Lluvia de ideas INICIADA\n\nBase de datos creada: ' + (gistId ? 'GitHub Gist' : 'Local'));
 }
 
 function pausarLluvia() {
     estadoRecepcion = 'pausado';
-    guardarDatosPresentador();
+    guardarConfiguracion();
+    guardarDatosEnGist();
     actualizarUI();
     console.log('Lluvia de ideas PAUSADA');
 }
 
 function pararLluvia() {
     estadoRecepcion = 'inactivo';
-    guardarDatosPresentador();
+    guardarConfiguracion();
+    guardarDatosEnGist();
     actualizarUI();
     console.log('Lluvia de ideas DETENIDA');
 }
 
-function limpiarTodo() {
-    if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras y el enunciado?')) {
+async function limpiarTodo() {
+    if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras de la base de datos?')) {
         palabras = [];
-        tiempoInicioSesion = Date.now();
-        guardarDatosPresentador();
+        
+        if (gistId) {
+            await limpiarGist();
+        } else {
+            guardarConfiguracion();
+        }
+        
         actualizarNube();
         limpiarEnunciado();
-        console.log('Todas las palabras eliminadas');
+        console.log('Base de datos limpiada');
+        alert('✅ Base de datos limpiada correctamente');
     }
+}
+
+function forzarActualizacion() {
+    cargarDatosDesdeGist();
 }
 
 function actualizarUI() {
@@ -367,11 +506,6 @@ function actualizarUI() {
 // ===== QR =====
 function generarNuevoQR() {
     try {
-        if (!sesionId) {
-            sesionId = generarIdSesion();
-            guardarDatosPresentador();
-        }
-        
         const currentUrl = window.location.href;
         let urlBase = currentUrl.replace('presentador.html', 'index.html');
         
@@ -379,6 +513,7 @@ function generarNuevoQR() {
             sesion: sesionId,
             tema: encodeURIComponent(temaSesion),
             estado: estadoRecepcion,
+            gist: gistId || '',
             timestamp: Date.now()
         });
         
@@ -413,6 +548,7 @@ function ampliarQR() {
             sesion: sesionId,
             tema: encodeURIComponent(temaSesion),
             estado: estadoRecepcion,
+            gist: gistId || '',
             timestamp: Date.now()
         });
         
@@ -513,7 +649,6 @@ function actualizarNube() {
             nube.appendChild(elemento);
         });
         
-        // Inicializar arrastre después de actualizar
         setTimeout(() => inicializarArrastre(), 100);
         
     } catch (error) {
@@ -535,7 +670,7 @@ function iniciarAudiencia() {
         });
     }
     
-    setInterval(verificarEstado, 1000);
+    setInterval(verificarEstado, 2000);
     verificarEstado();
 }
 
@@ -544,12 +679,14 @@ function procesarParametrosURL() {
     const sesionParam = urlParams.get('sesion');
     const temaParam = urlParams.get('tema');
     const estadoParam = urlParams.get('estado');
+    const gistParam = urlParams.get('gist');
     
     if (sesionParam) {
         const datosSesion = {
             sesionId: sesionParam,
             tema: temaParam ? decodeURIComponent(temaParam) : 'Lluvia de Ideas',
             estado: estadoParam || 'inactivo',
+            gistId: gistParam || '',
             timestamp: Date.now()
         };
         
@@ -558,12 +695,13 @@ function procesarParametrosURL() {
     }
 }
 
-function verificarEstado() {
+async function verificarEstado() {
     try {
         const datosSesion = JSON.parse(localStorage.getItem('lluviaIdeas_sesion_audiencia') || '{}');
         const estado = datosSesion.estado || 'inactivo';
         const tema = datosSesion.tema || 'Lluvia de Ideas';
         const sesionId = datosSesion.sesionId;
+        const gistId = datosSesion.gistId;
         
         const estadoElement = document.getElementById('estado');
         const input = document.getElementById('palabraInput');
@@ -615,7 +753,7 @@ function verificarEstado() {
     }
 }
 
-function enviarPalabra() {
+async function enviarPalabra() {
     try {
         const input = document.getElementById('palabraInput');
         const palabra = input.value.trim();
@@ -632,6 +770,7 @@ function enviarPalabra() {
         
         const datosSesion = JSON.parse(localStorage.getItem('lluviaIdeas_sesion_audiencia') || '{}');
         const sesionId = datosSesion.sesionId;
+        const gistId = datosSesion.gistId;
         
         if (!sesionId) {
             mostrarMensaje('❌ No hay sesión activa. Escanea el QR del presentador.', 'error');
@@ -642,18 +781,21 @@ function enviarPalabra() {
             palabra: palabra,
             timestamp: new Date().toISOString(),
             id: Date.now() + Math.random(),
-            sesionId: sesionId
+            sesionId: sesionId,
+            userAgent: navigator.userAgent.substring(0, 50)
         };
         
-        // Simular envío al presentador
-        sincronizarConPresentador(nuevaPalabra);
+        // Enviar palabra al Gist
+        const exito = await enviarPalabraAGist(nuevaPalabra, gistId);
         
-        mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!`, 'success');
+        if (exito) {
+            mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!`, 'success');
+        } else {
+            mostrarMensaje('❌ Error al enviar la palabra. Intenta nuevamente.', 'error');
+        }
         
         input.value = '';
         input.focus();
-        
-        console.log('Palabra enviada:', nuevaPalabra);
         
     } catch (error) {
         console.error('Error enviando palabra:', error);
@@ -661,13 +803,51 @@ function enviarPalabra() {
     }
 }
 
-function sincronizarConPresentador(palabraData) {
-    console.log('Sincronizando palabra con presentador:', palabraData);
+async function enviarPalabraAGist(palabraData, targetGistId) {
+    if (!targetGistId) {
+        console.log('No hay Gist ID para enviar');
+        return false;
+    }
     
-    // En un entorno real, aquí iría la lógica de servidor
-    setTimeout(() => {
-        console.log('Palabra sincronizada (simulado):', palabraData.palabra);
-    }, 500);
+    try {
+        // Primero obtener los datos actuales
+        const response = await fetch(`https://api.github.com/gists/${targetGistId}`);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const contenido = JSON.parse(data.files['palabras.json'].content);
+        
+        // Agregar nueva palabra
+        contenido.palabras.push(palabraData);
+        
+        // Guardar de vuelta
+        const updateResponse = await fetch(`https://api.github.com/gists/${targetGistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                files: {
+                    'palabras.json': {
+                        content: JSON.stringify(contenido, null, 2)
+                    }
+                }
+            })
+        });
+        
+        if (!updateResponse.ok) {
+            throw new Error(`Error HTTP: ${updateResponse.status}`);
+        }
+        
+        console.log('Palabra enviada a Gist:', palabraData.palabra);
+        return true;
+        
+    } catch (error) {
+        console.error('Error enviando palabra a Gist:', error);
+        return false;
+    }
 }
 
 // ===== FUNCIONES UTILITARIAS =====
