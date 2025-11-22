@@ -22,20 +22,27 @@
                     <button onclick="iniciarLluvia()" id="btnIniciar" class="btn-uniforme btn-iniciar">🚀 Iniciar Lluvia de Ideas</button>
                     <button onclick="pausarLluvia()" id="btnPausar" class="btn-uniforme btn-pausar" disabled>⏸️ Pausar Lluvia</button>
                     <button onclick="pararLluvia()" id="btnParar" class="btn-uniforme btn-parar" disabled>⏹️ Parar Lluvia</button>
-                    <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Todo</button>
+                    <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Base de Datos</button>
                     <button onclick="generarNuevoQR()" class="btn-uniforme btn-qr">🔄 Generar Nuevo QR</button>
                     <button onclick="exportarEnunciado()" class="btn-uniforme btn-exportar">💾 Exportar Enunciado</button>
                 </div>
 
                 <div class="configuracion">
-                    <label>
-                        <input type="checkbox" id="autoLimpiar" checked>
-                        Auto-limpiar cada 2 horas
-                    </label>
-                    <label>
-                        <input type="checkbox" id="modoArrastre" checked>
-                        Modo arrastre activado
-                    </label>
+                    <h4>🔧 Configuración de Base de Datos</h4>
+                    <div class="config-item">
+                        <label for="gistId">ID del Gist:</label>
+                        <input type="text" id="gistId" placeholder="Pega el ID del Gist aquí">
+                        <button onclick="cargarGistExistente()" class="btn-small">Cargar</button>
+                    </div>
+                    <div class="config-item">
+                        <label for="githubToken">Token GitHub (opcional):</label>
+                        <input type="password" id="githubToken" placeholder="Token personal de GitHub">
+                        <button onclick="guardarConfig()" class="btn-small">Guardar</button>
+                    </div>
+                    <div class="info-gist">
+                        <p><small>💡 <strong>Para crear una nueva base de datos:</strong> Haz click en "Iniciar Lluvia de Ideas"</small></p>
+                        <p><small>🔗 <strong>Gist Actual:</strong> <span id="gistActual">No configurado</span></small></p>
+                    </div>
                 </div>
             </div>
             
@@ -45,7 +52,7 @@
                     <span id="estadoRecepcion" class="estado-inactivo">Inactivo</span>
                 </div>
                 <div class="estado-item">
-                    <span>Palabras recibidas:</span>
+                    <span>Palabras en DB:</span>
                     <span id="contadorPalabras" class="contador">0</span>
                 </div>
                 <div class="estado-item">
@@ -53,8 +60,8 @@
                     <span id="sesionId">-</span>
                 </div>
                 <div class="estado-item">
-                    <span>Próxima limpieza:</span>
-                    <span id="tiempoLimpiar">-</span>
+                    <span>Última actualización:</span>
+                    <span id="ultimaActualizacion">-</span>
                 </div>
             </div>
         </div>
@@ -95,12 +102,13 @@
                     <button onclick="organizarAleatorio()" class="btn-control">🔀 Aleatorio</button>
                     <button onclick="organizarGrid()" class="btn-control">🔲 Rejilla</button>
                     <button onclick="limpiarEnunciado()" class="btn-control">🗑️ Limpiar Orden</button>
+                    <button onclick="forzarActualizacion()" class="btn-control">🔄 Actualizar DB</button>
                 </div>
             </div>
             
             <div id="areaEnunciado" class="area-enunciado">
                 <div class="enunciado-guia">
-                    💡 Arrastra las palabras para formar un enunciado. Las palabras nuevas aparecen abajo.
+                    💡 Arrastra las palabras para formar un enunciado
                 </div>
             </div>
             
