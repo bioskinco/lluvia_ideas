@@ -24,13 +24,14 @@
                     <button onclick="pararLluvia()" id="btnParar" class="btn-uniforme btn-parar" disabled>⏹️ Parar Lluvia</button>
                     <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Base de Datos</button>
                     <button onclick="generarQR()" class="btn-uniforme btn-qr">🔄 Actualizar QR</button>
+                    <button onclick="exportarEnunciado()" class="btn-uniforme btn-exportar">💾 Exportar Enunciado</button>
                 </div>
 
                 <div class="configuracion">
                     <h4>🔧 Configuración de Base de Datos</h4>
                     <div class="config-item">
                         <label for="gistId">ID del Gist:</label>
-                        <input type="text" id="gistId" placeholder="Pega el ID del Gist aquí" value="54887f05f30068b809593420f98c4b99">
+                        <input type="text" id="gistId" placeholder="Pega el ID del Gist aquí">
                         <button onclick="cargarGistExistente()" class="btn-small">Cargar</button>
                     </div>
                     <div class="config-item">
