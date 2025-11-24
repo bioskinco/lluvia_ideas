@@ -20,18 +20,15 @@
                 
                 <div class="botones-control">
                     <button onclick="iniciarLluvia()" id="btnIniciar" class="btn-uniforme btn-iniciar">🚀 Iniciar Lluvia de Ideas</button>
-                    <button onclick="pausarLluvia()" id="btnPausar" class="btn-uniforme btn-pausar" disabled>⏸️ Pausar Lluvia</button>
                     <button onclick="pararLluvia()" id="btnParar" class="btn-uniforme btn-parar" disabled>⏹️ Parar Lluvia</button>
                     <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Base de Datos</button>
-                    <button onclick="generarQR()" class="btn-uniforme btn-qr">🔄 Actualizar QR</button>
-                    <button onclick="exportarEnunciado()" class="btn-uniforme btn-exportar">💾 Exportar Enunciado</button>
                 </div>
 
                 <div class="configuracion">
                     <h4>🔧 Configuración de Base de Datos</h4>
                     <div class="config-item">
                         <label for="gistId">ID del Gist:</label>
-                        <input type="text" id="gistId" placeholder="Pega el ID del Gist aquí">
+                        <input type="text" id="gistId" placeholder="Pega el ID del Gist aquí" value="54887f05f30068b809593420f98c4b99">
                         <button onclick="cargarGistExistente()" class="btn-small">Cargar</button>
                     </div>
                     <div class="config-item">
@@ -40,7 +37,7 @@
                         <button onclick="guardarConfig()" class="btn-small">Guardar</button>
                     </div>
                     <div class="info-gist">
-                        <p><small>💡 <strong>Para crear una nueva base de datos:</strong> Haz click en "Iniciar Lluvia de Ideas"</small></p>
+                        <p><small>💡 <strong>Para usar la base de datos:</strong> Haz click en "Iniciar Lluvia de Ideas"</small></p>
                         <p><small>🔗 <strong>Gist Actual:</strong> <span id="gistActual">No configurado</span></small></p>
                     </div>
                 </div>
@@ -102,7 +99,7 @@
                     <button onclick="organizarAleatorio()" class="btn-control">🔀 Aleatorio</button>
                     <button onclick="organizarGrid()" class="btn-control">🔲 Rejilla</button>
                     <button onclick="limpiarEnunciado()" class="btn-control">🗑️ Limpiar Orden</button>
-                    <button onclick="forzarActualizacion()" class="btn-control">🔄 Actualizar DB</button>
+                    <button onclick="exportarEnunciado()" class="btn-control">💾 Exportar</button>
                 </div>
             </div>
             
