@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function cargarConfiguracion() {
     try {
         const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-        gistId = config.gistId || "54887f05f30068b809593420f98c4b99";
+        gistId = config.gistId || null;
         githubToken = config.githubToken || null;
         temaSesion = config.temaSesion || 'Lluvia de Ideas';
         sesionId = config.sesionId || generarIdSesion();
@@ -418,7 +418,7 @@ async function iniciarLluvia() {
     
     // Verificar si tenemos token de GitHub
     if (!githubToken) {
-        alert('⚠️ Por favor, ingresa tu token de GitHub en la configuración primero.');
+        alert('⚠️ Por favor, ingresa tu token de GitHub en la configuración primero y haz clic en "Guardar".');
         return;
     }
     
