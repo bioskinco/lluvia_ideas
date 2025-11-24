@@ -1,10 +1,11 @@
 // Configuración
 const CONFIG_KEY = 'lluviaIdeas_config';
+const GIST_ID_FIJO = "54887f05f30068b809593420f98c4b99";
 let estadoRecepcion = 'inactivo';
 let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
 let sesionId = null;
-let gistId = null;
+let gistId = GIST_ID_FIJO;
 let githubToken = null;
 let modoArrastre = true;
 
@@ -21,13 +22,15 @@ document.addEventListener('DOMContentLoaded', function() {
 function cargarConfiguracion() {
     try {
         const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-        gistId = config.gistId || null;
         githubToken = config.githubToken || null;
         temaSesion = config.temaSesion || 'Lluvia de Ideas';
         sesionId = config.sesionId || generarIdSesion();
         
+        // Siempre usar el Gist ID fijo
+        gistId = GIST_ID_FIJO;
+        
         if (document.getElementById('gistId')) {
-            document.getElementById('gistId').value = gistId || '';
+            document.getElementById('gistId').value = gistId;
         }
         if (document.getElementById('githubToken')) {
             document.getElementById('githubToken').value = githubToken || '';
@@ -36,7 +39,7 @@ function cargarConfiguracion() {
             document.getElementById('temaInput').value = temaSesion;
         }
         if (document.getElementById('gistActual')) {
-            document.getElementById('gistActual').textContent = gistId || 'No configurado';
+            document.getElementById('gistActual').textContent = gistId;
         }
         
         console.log('Configuración cargada:', { gistId, temaSesion, sesionId });
@@ -60,10 +63,8 @@ function guardarConfiguracion() {
 }
 
 function guardarConfig() {
-    const gistInput = document.getElementById('gistId');
     const tokenInput = document.getElementById('githubToken');
     
-    if (gistInput) gistId = gistInput.value.trim();
     if (tokenInput) githubToken = tokenInput.value.trim();
     
     guardarConfiguracion();
@@ -79,7 +80,7 @@ function generarIdSesion() {
 }
 
 // ===== GITHUB GISTS API =====
-async function crearNuevoGist() {
+async function inicializarGistExistente() {
     try {
         const datosIniciales = {
             tema: temaSesion,
@@ -89,15 +90,14 @@ async function crearNuevoGist() {
             timestamp: new Date().toISOString()
         };
         
-        const response = await fetch('https://api.github.com/gists', {
-            method: 'POST',
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 ...(githubToken && { 'Authorization': `token ${githubToken}` })
             },
             body: JSON.stringify({
                 description: `Lluvia de Ideas - ${temaSesion}`,
-                public: false,
                 files: {
                     'palabras.json': {
                         content: JSON.stringify(datosIniciales, null, 2)
@@ -110,20 +110,16 @@ async function crearNuevoGist() {
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
-        const data = await response.json();
-        gistId = data.id;
         guardarConfiguracion();
-        
-        document.getElementById('gistId').value = gistId;
         document.getElementById('gistActual').textContent = gistId;
         
-        console.log('Nuevo Gist creado:', gistId);
-        return gistId;
+        console.log('Gist inicializado:', gistId);
+        return true;
         
     } catch (error) {
-        console.error('Error creando Gist:', error);
-        alert('❌ Error creando base de datos. Verifica tu token de GitHub.');
-        return null;
+        console.error('Error inicializando Gist:', error);
+        alert('❌ Error inicializando base de datos. Verifica tu token de GitHub.');
+        return false;
     }
 }
 
@@ -137,6 +133,11 @@ async function cargarDatosDesdeGist() {
         const response = await fetch(`https://api.github.com/gists/${gistId}`);
         
         if (!response.ok) {
+            // Si el Gist no existe o hay error, intentamos crearlo
+            if (response.status === 404) {
+                alert('❌ El Gist no existe. Asegúrate de usar un Gist ID válido.');
+                return;
+            }
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
@@ -162,7 +163,7 @@ async function cargarDatosDesdeGist() {
         
     } catch (error) {
         console.error('Error cargando desde Gist:', error);
-        alert('❌ Error cargando base de datos. Verifica el ID del Gist y tu token.');
+        // No mostrar alerta para no interrumpir el flujo
     }
 }
 
@@ -396,7 +397,7 @@ async function iniciarPresentador() {
     cargarConfiguracion();
     actualizarUI();
     
-    // Cargar datos existentes si hay Gist
+    // Cargar datos existentes del Gist fijo
     if (gistId) {
         await cargarDatosDesdeGist();
     }
@@ -422,9 +423,9 @@ async function iniciarLluvia() {
         return;
     }
     
-    // Crear nueva base de datos (Gist)
-    const nuevoGistId = await crearNuevoGist();
-    if (nuevoGistId) {
+    // Inicializar el Gist existente (no crear uno nuevo)
+    const exito = await inicializarGistExistente();
+    if (exito) {
         guardarConfiguracion();
         generarQR();
         
@@ -433,16 +434,8 @@ async function iniciarLluvia() {
         actualizarUI();
         
         console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId, gistId);
-        alert('✅ Lluvia de ideas INICIADA\n\nBase de datos creada exitosamente en GitHub Gist');
+        alert('✅ Lluvia de ideas INICIADA\n\nUsando Gist: ' + gistId);
     }
-}
-
-function pausarLluvia() {
-    estadoRecepcion = 'pausado';
-    guardarConfiguracion();
-    guardarDatosEnGist();
-    actualizarUI();
-    console.log('Lluvia de ideas PAUSADA');
 }
 
 function pararLluvia() {
@@ -470,10 +463,6 @@ async function limpiarTodo() {
     }
 }
 
-function forzarActualizacion() {
-    cargarDatosDesdeGist();
-}
-
 function actualizarUI() {
     const estadoElement = document.getElementById('estadoRecepcion');
     if (estadoElement) {
@@ -482,24 +471,20 @@ function actualizarUI() {
     }
     
     const btnIniciar = document.getElementById('btnIniciar');
-    const btnPausar = document.getElementById('btnPausar');
     const btnParar = document.getElementById('btnParar');
     
-    if (btnIniciar && btnPausar && btnParar) {
+    if (btnIniciar && btnParar) {
         switch(estadoRecepcion) {
             case 'inactivo':
                 btnIniciar.disabled = false;
-                btnPausar.disabled = true;
                 btnParar.disabled = true;
                 break;
             case 'activo':
                 btnIniciar.disabled = true;
-                btnPausar.disabled = false;
                 btnParar.disabled = false;
                 break;
             case 'pausado':
                 btnIniciar.disabled = true;
-                btnPausar.disabled = true;
                 btnParar.disabled = false;
                 break;
         }
@@ -516,8 +501,7 @@ function generarQR() {
             sesion: sesionId,
             tema: encodeURIComponent(temaSesion),
             estado: estadoRecepcion,
-            gist: gistId || '',
-            timestamp: Date.now()
+            gist: gistId || ''
         });
         
         const urlConParametros = `${urlBase}?${params.toString()}`;
