@@ -107,7 +107,8 @@ async function inicializarGistExistente() {
         });
         
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
         }
         
         guardarConfiguracion();
@@ -133,43 +134,56 @@ async function cargarDatosDesdeGist() {
         const response = await fetch(`https://api.github.com/gists/${gistId}`);
         
         if (!response.ok) {
-            // Si el Gist no existe o hay error, intentamos crearlo
             if (response.status === 404) {
-                alert('❌ El Gist no existe. Asegúrate de usar un Gist ID válido.');
+                console.log('El Gist no existe:', gistId);
                 return;
             }
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
         const data = await response.json();
+        console.log('Datos crudos del Gist:', data);
         
-        // Buscar el archivo correcto - puede ser 'palabras.json' o 'gistfile1.txt'
+        // Buscar el archivo correcto
         let contenido;
         if (data.files['palabras.json']) {
             contenido = JSON.parse(data.files['palabras.json'].content);
         } else if (data.files['gistfile1.txt']) {
             contenido = JSON.parse(data.files['gistfile1.txt'].content);
         } else {
-            // Si no existe ningún archivo, usar valores por defecto
             const primerArchivo = Object.keys(data.files)[0];
             if (primerArchivo) {
                 contenido = JSON.parse(data.files[primerArchivo].content);
             } else {
-                throw new Error('No se encontró ningún archivo en el Gist');
+                console.log('No se encontró ningún archivo en el Gist');
+                return;
             }
         }
         
+        console.log('Contenido del Gist:', contenido);
+        
+        // Actualizar variables globales
         palabras = contenido.palabras || [];
         temaSesion = contenido.tema || temaSesion;
         estadoRecepcion = contenido.estado || estadoRecepcion;
         sesionId = contenido.sesionId || sesionId;
         
         // Actualizar UI
-        document.getElementById('temaInput').value = temaSesion;
-        document.getElementById('tituloPresentador').textContent = temaSesion;
-        document.getElementById('sesionId').textContent = sesionId;
-        document.getElementById('gistActual').textContent = gistId;
-        document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+        if (document.getElementById('temaInput')) {
+            document.getElementById('temaInput').value = temaSesion;
+        }
+        if (document.getElementById('tituloPresentador')) {
+            document.getElementById('tituloPresentador').textContent = temaSesion;
+        }
+        if (document.getElementById('sesionId')) {
+            document.getElementById('sesionId').textContent = sesionId;
+        }
+        if (document.getElementById('gistActual')) {
+            document.getElementById('gistActual').textContent = gistId;
+        }
+        if (document.getElementById('ultimaActualizacion')) {
+            document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+        }
         
         actualizarUI();
         actualizarNube();
@@ -178,7 +192,6 @@ async function cargarDatosDesdeGist() {
         
     } catch (error) {
         console.error('Error cargando desde Gist:', error);
-        // No mostrar alerta para no interrumpir el flujo
     }
 }
 
@@ -214,10 +227,13 @@ async function guardarDatosEnGist() {
         });
         
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
         }
         
-        document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+        if (document.getElementById('ultimaActualizacion')) {
+            document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+        }
         console.log('Datos guardados en Gist');
         return true;
         
@@ -467,10 +483,9 @@ async function limpiarTodo() {
         
         if (gistId) {
             await limpiarGist();
-        } else {
-            guardarConfiguracion();
         }
         
+        guardarConfiguracion();
         actualizarNube();
         limpiarEnunciado();
         console.log('Base de datos limpiada');
@@ -775,6 +790,11 @@ async function enviarPalabra() {
             return;
         }
         
+        if (!gistId) {
+            mostrarMensaje('❌ No hay base de datos configurada.', 'error');
+            return;
+        }
+        
         const nuevaPalabra = {
             palabra: palabra,
             timestamp: new Date().toISOString(),
@@ -782,6 +802,8 @@ async function enviarPalabra() {
             sesionId: sesionId,
             userAgent: navigator.userAgent.substring(0, 50)
         };
+        
+        console.log('Enviando palabra:', nuevaPalabra);
         
         // Enviar palabra al Gist
         const exito = await enviarPalabraAGist(nuevaPalabra, gistId);
@@ -808,15 +830,18 @@ async function enviarPalabraAGist(palabraData, targetGistId) {
     }
     
     try {
+        console.log('Obteniendo datos actuales del Gist:', targetGistId);
+        
         // Primero obtener los datos actuales
         const response = await fetch(`https://api.github.com/gists/${targetGistId}`);
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+            throw new Error(`Error HTTP al obtener: ${response.status}`);
         }
         
         const data = await response.json();
+        console.log('Datos obtenidos del Gist:', data);
         
-        // Buscar el archivo correcto - puede ser 'palabras.json' o 'gistfile1.txt'
+        // Buscar el archivo correcto
         let contenido;
         let fileName;
         if (data.files['palabras.json']) {
@@ -826,7 +851,6 @@ async function enviarPalabraAGist(palabraData, targetGistId) {
             contenido = JSON.parse(data.files['gistfile1.txt'].content);
             fileName = 'gistfile1.txt';
         } else {
-            // Si no existe ningún archivo, usar el primer archivo disponible
             const primerArchivo = Object.keys(data.files)[0];
             if (primerArchivo) {
                 contenido = JSON.parse(data.files[primerArchivo].content);
@@ -836,11 +860,17 @@ async function enviarPalabraAGist(palabraData, targetGistId) {
             }
         }
         
-        // Agregar nueva palabra
+        console.log('Contenido actual:', contenido);
+        
+        // Asegurar que el array de palabras existe
         if (!contenido.palabras) {
             contenido.palabras = [];
         }
+        
+        // Agregar nueva palabra
         contenido.palabras.push(palabraData);
+        
+        console.log('Contenido actualizado:', contenido);
         
         // Guardar de vuelta
         const updateResponse = await fetch(`https://api.github.com/gists/${targetGistId}`, {
@@ -858,10 +888,11 @@ async function enviarPalabraAGist(palabraData, targetGistId) {
         });
         
         if (!updateResponse.ok) {
-            throw new Error(`Error HTTP: ${updateResponse.status}`);
+            const errorText = await updateResponse.text();
+            throw new Error(`Error HTTP al guardar: ${updateResponse.status} - ${errorText}`);
         }
         
-        console.log('Palabra enviada a Gist:', palabraData.palabra);
+        console.log('Palabra enviada exitosamente a Gist:', palabraData.palabra);
         return true;
         
     } catch (error) {
