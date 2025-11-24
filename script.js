@@ -1,12 +1,11 @@
 // Configuración
 const CONFIG_KEY = 'lluviaIdeas_config';
-const GIST_ID_FIJO = "54887f05f30068b809593420f98c4b99";
 let estadoRecepcion = 'inactivo';
 let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
 let sesionId = null;
-let gistId = GIST_ID_FIJO;
-let githubToken = null; // Aquí pondrías tu token si es necesario
+let gistId = null;
+let githubToken = null;
 let modoArrastre = true;
 
 // ===== INICIALIZACIÓN =====
@@ -22,15 +21,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function cargarConfiguracion() {
     try {
         const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+        gistId = config.gistId || "54887f05f30068b809593420f98c4b99";
         githubToken = config.githubToken || null;
         temaSesion = config.temaSesion || 'Lluvia de Ideas';
         sesionId = config.sesionId || generarIdSesion();
         
-        // Siempre usar el Gist ID fijo
-        gistId = GIST_ID_FIJO;
-        
         if (document.getElementById('gistId')) {
-            document.getElementById('gistId').value = gistId;
+            document.getElementById('gistId').value = gistId || '';
         }
         if (document.getElementById('githubToken')) {
             document.getElementById('githubToken').value = githubToken || '';
@@ -39,7 +36,7 @@ function cargarConfiguracion() {
             document.getElementById('temaInput').value = temaSesion;
         }
         if (document.getElementById('gistActual')) {
-            document.getElementById('gistActual').textContent = gistId;
+            document.getElementById('gistActual').textContent = gistId || 'No configurado';
         }
         
         console.log('Configuración cargada:', { gistId, temaSesion, sesionId });
@@ -60,6 +57,21 @@ function guardarConfiguracion() {
     
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
     console.log('Configuración guardada');
+}
+
+function guardarConfig() {
+    const gistInput = document.getElementById('gistId');
+    const tokenInput = document.getElementById('githubToken');
+    
+    if (gistInput) gistId = gistInput.value.trim();
+    if (tokenInput) githubToken = tokenInput.value.trim();
+    
+    guardarConfiguracion();
+    alert('✅ Configuración guardada');
+    
+    if (gistId) {
+        cargarDatosDesdeGist();
+    }
 }
 
 function generarIdSesion() {
@@ -99,17 +111,19 @@ async function crearNuevoGist() {
         }
         
         const data = await response.json();
+        gistId = data.id;
         guardarConfiguracion();
         
+        document.getElementById('gistId').value = gistId;
         document.getElementById('gistActual').textContent = gistId;
         
-        console.log('Gist configurado:', gistId);
+        console.log('Nuevo Gist creado:', gistId);
         return gistId;
         
     } catch (error) {
-        console.error('Error configurando Gist:', error);
-        alert('❌ Error configurando base de datos. Usando Gist existente.');
-        return gistId;
+        console.error('Error creando Gist:', error);
+        alert('❌ Error creando base de datos. Verifica tu token de GitHub.');
+        return null;
     }
 }
 
@@ -148,7 +162,7 @@ async function cargarDatosDesdeGist() {
         
     } catch (error) {
         console.error('Error cargando desde Gist:', error);
-        // No mostrar alerta para no interrumpir el flujo
+        alert('❌ Error cargando base de datos. Verifica el ID del Gist y tu token.');
     }
 }
 
@@ -234,6 +248,15 @@ async function limpiarGist() {
         
     } catch (error) {
         console.error('Error limpiando Gist:', error);
+    }
+}
+
+function cargarGistExistente() {
+    const gistInput = document.getElementById('gistId');
+    if (gistInput && gistInput.value.trim()) {
+        gistId = gistInput.value.trim();
+        guardarConfiguracion();
+        cargarDatosDesdeGist();
     }
 }
 
@@ -332,6 +355,26 @@ function limpiarEnunciado() {
     actualizarEstadoAreaEnunciado();
 }
 
+function exportarEnunciado() {
+    const areaEnunciado = document.getElementById('areaEnunciado');
+    const palabrasEnunciado = Array.from(areaEnunciado.querySelectorAll('.palabra'))
+        .map(p => p.textContent)
+        .join(' ');
+    
+    if (palabrasEnunciado.trim()) {
+        const blob = new Blob([palabrasEnunciado], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `enunciado-${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('✅ Enunciado exportado correctamente');
+    } else {
+        alert('ℹ️ No hay palabras en el área de enunciado');
+    }
+}
+
 function organizarAleatorio() {
     const nube = document.getElementById('nubePalabras');
     const palabrasElements = Array.from(nube.querySelectorAll('.palabra'));
@@ -353,7 +396,7 @@ async function iniciarPresentador() {
     cargarConfiguracion();
     actualizarUI();
     
-    // Cargar datos existentes del Gist fijo
+    // Cargar datos existentes si hay Gist
     if (gistId) {
         await cargarDatosDesdeGist();
     }
@@ -373,18 +416,33 @@ async function iniciarLluvia() {
     estadoRecepcion = 'activo';
     sesionId = generarIdSesion();
     
-    // Configurar el Gist existente
-    await crearNuevoGist();
+    // Verificar si tenemos token de GitHub
+    if (!githubToken) {
+        alert('⚠️ Por favor, ingresa tu token de GitHub en la configuración primero.');
+        return;
+    }
     
+    // Crear nueva base de datos (Gist)
+    const nuevoGistId = await crearNuevoGist();
+    if (nuevoGistId) {
+        guardarConfiguracion();
+        generarQR();
+        
+        document.getElementById('tituloPresentador').textContent = temaSesion;
+        document.getElementById('sesionId').textContent = sesionId;
+        actualizarUI();
+        
+        console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId, gistId);
+        alert('✅ Lluvia de ideas INICIADA\n\nBase de datos creada exitosamente en GitHub Gist');
+    }
+}
+
+function pausarLluvia() {
+    estadoRecepcion = 'pausado';
     guardarConfiguracion();
-    generarQR();
-    
-    document.getElementById('tituloPresentador').textContent = temaSesion;
-    document.getElementById('sesionId').textContent = sesionId;
+    guardarDatosEnGist();
     actualizarUI();
-    
-    console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId, gistId);
-    alert('✅ Lluvia de ideas INICIADA\n\nUsando Gist: ' + gistId);
+    console.log('Lluvia de ideas PAUSADA');
 }
 
 function pararLluvia() {
@@ -412,6 +470,10 @@ async function limpiarTodo() {
     }
 }
 
+function forzarActualizacion() {
+    cargarDatosDesdeGist();
+}
+
 function actualizarUI() {
     const estadoElement = document.getElementById('estadoRecepcion');
     if (estadoElement) {
@@ -420,20 +482,24 @@ function actualizarUI() {
     }
     
     const btnIniciar = document.getElementById('btnIniciar');
+    const btnPausar = document.getElementById('btnPausar');
     const btnParar = document.getElementById('btnParar');
     
-    if (btnIniciar && btnParar) {
+    if (btnIniciar && btnPausar && btnParar) {
         switch(estadoRecepcion) {
             case 'inactivo':
                 btnIniciar.disabled = false;
+                btnPausar.disabled = true;
                 btnParar.disabled = true;
                 break;
             case 'activo':
                 btnIniciar.disabled = true;
+                btnPausar.disabled = false;
                 btnParar.disabled = false;
                 break;
             case 'pausado':
                 btnIniciar.disabled = true;
+                btnPausar.disabled = true;
                 btnParar.disabled = false;
                 break;
         }
@@ -446,19 +512,18 @@ function generarQR() {
         const currentUrl = window.location.href;
         let urlBase = currentUrl.replace('presentador.html', 'index.html');
         
-        // Parámetros fijos basados en la configuración actual
         const params = new URLSearchParams({
             sesion: sesionId,
             tema: encodeURIComponent(temaSesion),
             estado: estadoRecepcion,
-            gist: gistId || ''
+            gist: gistId || '',
+            timestamp: Date.now()
         });
         
         const urlConParametros = `${urlBase}?${params.toString()}`;
         
-        console.log('Generando QR con parámetros fijos:', urlConParametros);
+        console.log('Generando QR con parámetros:', urlConParametros);
         
-        // Generar QR pequeño
         const qrPequeno = qrcode(0, 'L');
         qrPequeno.addData(urlConParametros);
         qrPequeno.make();
@@ -471,6 +536,52 @@ function generarQR() {
         console.error('Error generando QR:', error);
         document.getElementById('qrCode').innerHTML = '<p>Error generando QR</p>';
     }
+}
+
+function ampliarQR() {
+    try {
+        const currentUrl = window.location.href;
+        let urlBase = currentUrl.replace('presentador.html', 'index.html');
+        
+        const params = new URLSearchParams({
+            sesion: sesionId,
+            tema: encodeURIComponent(temaSesion),
+            estado: estadoRecepcion,
+            gist: gistId || '',
+            timestamp: Date.now()
+        });
+        
+        const urlConParametros = `${urlBase}?${params.toString()}`;
+        
+        const qrAmpliado = document.getElementById('qrAmpliado');
+        qrAmpliado.innerHTML = '';
+        
+        const qr = qrcode(0, 'H');
+        qr.addData(urlConParametros);
+        qr.make();
+        
+        const qrImage = qr.createImgTag(8);
+        qrAmpliado.innerHTML = qrImage;
+        
+        const qrImg = qrAmpliado.querySelector('img');
+        if (qrImg) {
+            qrImg.style.width = '100%';
+            qrImg.style.height = 'auto';
+            qrImg.style.maxWidth = '350px';
+            qrImg.style.display = 'block';
+            qrImg.style.margin = '0 auto';
+        }
+        
+        document.getElementById('modalQR').style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error ampliando QR:', error);
+        document.getElementById('qrAmpliado').innerHTML = '<p style="color: white; padding: 50px;">Error generando QR</p>';
+    }
+}
+
+function cerrarQR() {
+    document.getElementById('modalQR').style.display = 'none';
 }
 
 function copiarURL() {
@@ -757,4 +868,11 @@ function mostrarMensaje(texto, tipo) {
         mensajeDiv.innerHTML = '';
         mensajeDiv.style.backgroundColor = 'transparent';
     }, 3000);
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('modalQR');
+    if (event.target === modal) {
+        cerrarQR();
+    }
 }
