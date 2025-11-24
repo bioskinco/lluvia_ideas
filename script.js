@@ -1,6 +1,6 @@
 // Configuración
 const CONFIG_KEY = 'lluviaIdeas_config';
-const GIST_ID_FIJO = "54887f05f30068b809593420f98c4b99";
+const GIST_ID_FIJO = "677fcb435ce8aa6315385b3fdc75df54";
 let estadoRecepcion = 'inactivo';
 let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
@@ -847,3 +847,4 @@ window.onclick = function(event) {
         cerrarQR();
     }
 }
+
