@@ -142,7 +142,22 @@ async function cargarDatosDesdeGist() {
         }
         
         const data = await response.json();
-        const contenido = JSON.parse(data.files['palabras.json'].content);
+        
+        // Buscar el archivo correcto - puede ser 'palabras.json' o 'gistfile1.txt'
+        let contenido;
+        if (data.files['palabras.json']) {
+            contenido = JSON.parse(data.files['palabras.json'].content);
+        } else if (data.files['gistfile1.txt']) {
+            contenido = JSON.parse(data.files['gistfile1.txt'].content);
+        } else {
+            // Si no existe ningún archivo, usar valores por defecto
+            const primerArchivo = Object.keys(data.files)[0];
+            if (primerArchivo) {
+                contenido = JSON.parse(data.files[primerArchivo].content);
+            } else {
+                throw new Error('No se encontró ningún archivo en el Gist');
+            }
+        }
         
         palabras = contenido.palabras || [];
         temaSesion = contenido.tema || temaSesion;
@@ -800,9 +815,31 @@ async function enviarPalabraAGist(palabraData, targetGistId) {
         }
         
         const data = await response.json();
-        const contenido = JSON.parse(data.files['palabras.json'].content);
+        
+        // Buscar el archivo correcto - puede ser 'palabras.json' o 'gistfile1.txt'
+        let contenido;
+        let fileName;
+        if (data.files['palabras.json']) {
+            contenido = JSON.parse(data.files['palabras.json'].content);
+            fileName = 'palabras.json';
+        } else if (data.files['gistfile1.txt']) {
+            contenido = JSON.parse(data.files['gistfile1.txt'].content);
+            fileName = 'gistfile1.txt';
+        } else {
+            // Si no existe ningún archivo, usar el primer archivo disponible
+            const primerArchivo = Object.keys(data.files)[0];
+            if (primerArchivo) {
+                contenido = JSON.parse(data.files[primerArchivo].content);
+                fileName = primerArchivo;
+            } else {
+                throw new Error('No se encontró ningún archivo en el Gist');
+            }
+        }
         
         // Agregar nueva palabra
+        if (!contenido.palabras) {
+            contenido.palabras = [];
+        }
         contenido.palabras.push(palabraData);
         
         // Guardar de vuelta
@@ -813,7 +850,7 @@ async function enviarPalabraAGist(palabraData, targetGistId) {
             },
             body: JSON.stringify({
                 files: {
-                    'palabras.json': {
+                    [fileName]: {
                         content: JSON.stringify(contenido, null, 2)
                     }
                 }
