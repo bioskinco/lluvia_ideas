@@ -947,3 +947,104 @@ input[type="text"]:focus {
     font-weight: 500;
     font-size: 16px;
 }
+
+/* Estilos para el sistema de arrastre */
+.palabra {
+    cursor: grab;
+    user-select: none;
+}
+
+.palabra:active {
+    cursor: grabbing;
+}
+
+.palabra.arrastrando {
+    opacity: 0.6;
+}
+
+.area-enunciado-container {
+    margin-bottom: 20px;
+}
+
+.area-enunciado-container h3 {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+.area-enunciado {
+    min-height: 80px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+    transition: all 0.3s ease;
+}
+
+.area-enunciado.palabra-zona-objetivo {
+    border-color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.area-enunciado.con-palabras {
+    background: rgba(255, 255, 255, 0.1);
+    border-style: solid;
+    border-color: rgba(46, 204, 113, 0.5);
+}
+
+.enunciado-guia {
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    text-align: center;
+    width: 100%;
+    padding: 20px;
+}
+
+.palabra-enunciado {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    animation: aparecer 0.3s ease-out;
+}
+
+.palabra-enunciado:active {
+    cursor: grabbing;
+}
+
+.palabra-enunciado.arrastrando {
+    opacity: 0.6;
+}
+
+/* Reorganización del panel izquierdo */
+.panel-control {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.controles {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.qr-section-presentador {
+    order: 3;
+}
+
+.estados {
+    order: 4;
+}
+
+.configuracion {
+    order: 5;
+}
