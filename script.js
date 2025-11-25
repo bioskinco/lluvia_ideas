@@ -23,7 +23,7 @@ let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
 let sesionId = null;
 let escuchandoFirebase = false;
-let palabrasEnEnunciado = new Set(); // Para trackear palabras usadas
+let palabrasEnEnunciado = new Set();
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -80,12 +80,16 @@ function escucharCambiosFirebase() {
             const palabrasObj = data.palabras || {};
             const palabrasArray = Object.values(palabrasObj);
             
+            // FILTRADO MEJORADO - Eliminar duplicados por palabra e ID
             const palabrasUnicas = [];
+            const palabrasVistas = new Set();
             const idsVistos = new Set();
             
             palabrasArray.forEach(palabra => {
-                if (!idsVistos.has(palabra.id)) {
+                const claveUnica = palabra.palabra + '_' + palabra.id;
+                if (!idsVistos.has(palabra.id) && !palabrasVistas.has(palabra.palabra)) {
                     idsVistos.add(palabra.id);
+                    palabrasVistas.add(palabra.palabra);
                     palabrasUnicas.push(palabra);
                 }
             });
@@ -204,7 +208,7 @@ function inicializarArrastre() {
 function manejarDragStart(e) {
     const texto = this.textContent;
     e.dataTransfer.setData('text/plain', texto);
-    e.dataTransfer.setData('element-id', this.id); // Guardar ID del elemento
+    e.dataTransfer.setData('element-id', this.id);
     this.classList.add('arrastrando');
     console.log('Comenzando arrastre de:', texto);
 }
@@ -488,7 +492,7 @@ function actualizarNubePalabras() {
     palabras.forEach((item, index) => {
         const elemento = document.createElement('div');
         elemento.className = 'palabra';
-        elemento.id = 'palabra-' + item.id; // ID único para cada palabra
+        elemento.id = 'palabra-' + item.id;
         elemento.textContent = item.palabra;
         elemento.setAttribute('data-timestamp', item.timestamp);
         elemento.title = `Enviado: ${new Date(item.timestamp).toLocaleTimeString()}`;
@@ -519,8 +523,6 @@ function actualizarNubePalabras() {
     // Inicializar sistema de arrastre después de agregar las palabras
     setTimeout(() => inicializarArrastre(), 100);
 }
-
-// ... (el resto del código se mantiene igual - funciones QR, audiencia, etc.)
 
 // ===== QR =====
 function generarQR() {
