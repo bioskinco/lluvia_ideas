@@ -197,8 +197,55 @@ function manejarDrop(e) {
     
     const texto = e.dataTransfer.getData('text/plain');
     if (texto) {
-        agregarPalabraAEnunciado(texto);
+        // Verificar si la palabra ya existe en el área de enunciado
+        const palabrasExistentes = Array.from(this.querySelectorAll('.palabra-enunciado'));
+        const yaExiste = palabrasExistentes.some(palabra => palabra.textContent === texto);
+        
+        if (!yaExiste) {
+            agregarPalabraAEnunciado(texto);
+            // Marcar la palabra como usada en la nube
+            quitarPalabraDeNube(texto);
+        } else {
+            console.log('La palabra ya existe en el enunciado');
+        }
     }
+}
+
+function quitarPalabraDeNube(texto) {
+    const nube = document.getElementById('nubePalabras');
+    const palabrasEnNube = nube.querySelectorAll('.palabra');
+    
+    palabrasEnNube.forEach(palabra => {
+        if (palabra.textContent === texto) {
+            palabra.style.opacity = '0.3';
+            palabra.style.pointerEvents = 'none';
+            palabra.title = 'Ya usada en el enunciado';
+        }
+    });
+}
+
+function restaurarPalabraEnNube(texto) {
+    const nube = document.getElementById('nubePalabras');
+    const palabrasEnNube = nube.querySelectorAll('.palabra');
+    
+    palabrasEnNube.forEach(palabra => {
+        if (palabra.textContent === texto) {
+            palabra.style.opacity = '1';
+            palabra.style.pointerEvents = 'auto';
+            palabra.title = `Enviado: ${palabra.getAttribute('data-timestamp') || 'Reciente'}`;
+        }
+    });
+}
+
+function restaurarPalabrasEnNube() {
+    const nube = document.getElementById('nubePalabras');
+    const palabrasEnNube = nube.querySelectorAll('.palabra');
+    
+    palabrasEnNube.forEach(palabra => {
+        palabra.style.opacity = '1';
+        palabra.style.pointerEvents = 'auto';
+        palabra.title = `Enviado: ${palabra.getAttribute('data-timestamp') || 'Reciente'}`;
+    });
 }
 
 function agregarPalabraAEnunciado(texto) {
@@ -207,6 +254,15 @@ function agregarPalabraAEnunciado(texto) {
     // Remover mensaje guía si existe
     const guia = areaEnunciado.querySelector('.enunciado-guia');
     if (guia) guia.remove();
+    
+    // Verificar nuevamente si ya existe (doble verificación)
+    const palabrasExistentes = Array.from(areaEnunciado.querySelectorAll('.palabra-enunciado'));
+    const yaExiste = palabrasExistentes.some(palabra => palabra.textContent === texto);
+    
+    if (yaExiste) {
+        console.log('La palabra ya existe en el enunciado');
+        return;
+    }
     
     // Crear elemento de palabra en el enunciado
     const palabraElement = document.createElement('div');
@@ -218,9 +274,10 @@ function agregarPalabraAEnunciado(texto) {
     palabraElement.addEventListener('dragstart', manejarDragStart);
     palabraElement.addEventListener('dragend', manejarDragEnd);
     
-    // Doble click para eliminar
+    // Doble click para eliminar y restaurar en nube
     palabraElement.addEventListener('dblclick', function() {
         this.remove();
+        restaurarPalabraEnNube(texto);
         actualizarEstadoAreaEnunciado();
     });
     
@@ -233,21 +290,28 @@ function agregarPalabraAEnunciado(texto) {
         e.preventDefault();
         const textoMovido = e.dataTransfer.getData('text/plain');
         if (textoMovido) {
-            // Mover la palabra antes o después de esta
-            const nuevaPalabra = document.createElement('div');
-            nuevaPalabra.className = 'palabra-enunciado';
-            nuevaPalabra.textContent = textoMovido;
-            nuevaPalabra.setAttribute('draggable', 'true');
+            // Solo permitir reordenar si la palabra no existe ya
+            const palabrasExistentes = Array.from(this.parentNode.querySelectorAll('.palabra-enunciado'));
+            const yaExiste = palabrasExistentes.some(palabra => palabra.textContent === textoMovido);
             
-            // Configurar eventos para la nueva palabra
-            nuevaPalabra.addEventListener('dragstart', manejarDragStart);
-            nuevaPalabra.addEventListener('dragend', manejarDragEnd);
-            nuevaPalabra.addEventListener('dblclick', function() {
-                this.remove();
-                actualizarEstadoAreaEnunciado();
-            });
-            
-            this.parentNode.insertBefore(nuevaPalabra, this);
+            if (!yaExiste) {
+                const nuevaPalabra = document.createElement('div');
+                nuevaPalabra.className = 'palabra-enunciado';
+                nuevaPalabra.textContent = textoMovido;
+                nuevaPalabra.setAttribute('draggable', 'true');
+                
+                // Configurar eventos para la nueva palabra
+                nuevaPalabra.addEventListener('dragstart', manejarDragStart);
+                nuevaPalabra.addEventListener('dragend', manejarDragEnd);
+                nuevaPalabra.addEventListener('dblclick', function() {
+                    this.remove();
+                    restaurarPalabraEnNube(textoMovido);
+                    actualizarEstadoAreaEnunciado();
+                });
+                
+                this.parentNode.insertBefore(nuevaPalabra, this);
+                quitarPalabraDeNube(textoMovido);
+            }
         }
     });
     
@@ -273,6 +337,10 @@ function actualizarEstadoAreaEnunciado() {
 function limpiarEnunciado() {
     const areaEnunciado = document.getElementById('areaEnunciado');
     if (areaEnunciado) {
+        // Restaurar todas las palabras en la nube primero
+        restaurarPalabrasEnNube();
+        
+        // Luego limpiar el enunciado
         areaEnunciado.querySelectorAll('.palabra-enunciado').forEach(p => p.remove());
         actualizarEstadoAreaEnunciado();
     }
@@ -326,6 +394,8 @@ async function limpiarTodo() {
     if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras?')) {
         try {
             await limpiarPalabrasFirebase();
+            // También restaurar todas las palabras en la nube
+            restaurarPalabrasEnNube();
             actualizarInterfazPresentador();
             alert('✅ Palabras limpiadas correctamente');
         } catch (error) {
@@ -391,6 +461,7 @@ function actualizarNubePalabras() {
         const elemento = document.createElement('div');
         elemento.className = 'palabra';
         elemento.textContent = item.palabra;
+        elemento.setAttribute('data-timestamp', item.timestamp);
         elemento.title = `Enviado: ${new Date(item.timestamp).toLocaleTimeString()}`;
         
         const colores = [
