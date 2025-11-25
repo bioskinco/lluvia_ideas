@@ -2,7 +2,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
 import { getDatabase, ref, set, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js';
 
-// Firebase configuration - TU CONFIGURACIÓN
+// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyCfdrKJNp96VdFRvR6vULSXc1MuE05Skgo",
     authDomain: "palabras-bdf09.firebaseapp.com",
@@ -22,7 +22,6 @@ let estadoRecepcion = 'inactivo';
 let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
 let sesionId = null;
-let modoArrastre = true;
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -40,7 +39,7 @@ async function inicializarSesionFirebase() {
         
         const datosIniciales = {
             tema: temaSesion,
-            estado: estadoRecepcion,
+            estado: 'activo',
             sesionId: sesionId,
             palabras: {},
             timestamp: new Date().toISOString()
@@ -56,76 +55,128 @@ async function inicializarSesionFirebase() {
     }
 }
 
+// FUNCIÓN CRÍTICA: Escuchar cambios en tiempo real
 function escucharCambiosFirebase() {
     if (!sesionId) {
         console.error('No hay sesionId para escuchar cambios');
         return;
     }
     
-    console.log('Escuchando cambios en Firebase para sesión:', sesionId);
+    console.log('🔴 INICIANDO ESCUCHA para sesión:', sesionId);
     
     const sesionRef = ref(database, sesionId);
     
     onValue(sesionRef, (snapshot) => {
         const data = snapshot.val();
-        console.log('📡 Datos recibidos de Firebase:', data);
+        console.log('🟢 DATOS RECIBIDOS de Firebase:', data);
         
         if (data) {
             // Convertir objeto de palabras a array
-            const palabrasArray = data.palabras ? Object.values(data.palabras) : [];
+            const palabrasObj = data.palabras || {};
+            const palabrasArray = Object.values(palabrasObj);
             
             palabras = palabrasArray;
             temaSesion = data.tema || temaSesion;
             estadoRecepcion = data.estado || estadoRecepcion;
             
-            console.log('🔄 Datos procesados:', {
+            console.log('🟡 DATOS PROCESADOS:', {
                 palabrasCount: palabras.length,
                 tema: temaSesion,
                 estado: estadoRecepcion,
-                palabrasEjemplo: palabras.slice(0, 3) // Mostrar primeras 3 para debug
+                palabras: palabras
             });
             
-            // Actualizar UI del presentador
-            if (document.body.classList.contains('presentador-body')) {
-                console.log('🎯 Actualizando UI del presentador');
-                actualizarUI();
-                actualizarNube();
-                
-                if (document.getElementById('temaInput')) {
-                    document.getElementById('temaInput').value = temaSesion;
-                }
-                if (document.getElementById('tituloPresentador')) {
-                    document.getElementById('tituloPresentador').textContent = temaSesion;
-                }
-                if (document.getElementById('sesionId')) {
-                    document.getElementById('sesionId').textContent = sesionId;
-                }
-                if (document.getElementById('ultimaActualizacion')) {
-                    document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
-                }
-                if (document.getElementById('estadoConexion')) {
-                    document.getElementById('estadoConexion').textContent = 'Conectado ✓';
-                    document.getElementById('estadoConexion').style.color = '#2ecc71';
-                }
-            }
+            // ACTUALIZAR INTERFAZ DEL PRESENTADOR
+            actualizarInterfazPresentador();
+            
         } else {
-            console.log('❌ No se encontraron datos en Firebase para la sesión:', sesionId);
+            console.log('🔴 No hay datos en Firebase para:', sesionId);
         }
-    }, (error) => {
-        console.error('💥 Error escuchando cambios de Firebase:', error);
+    });
+}
+
+function actualizarInterfazPresentador() {
+    console.log('🎨 Actualizando interfaz del presentador...');
+    
+    // Actualizar contador
+    const contador = document.getElementById('contadorPalabras');
+    if (contador) {
+        contador.textContent = palabras.length;
+        console.log('🔢 Contador actualizado:', palabras.length);
+    }
+    
+    // Actualizar estado
+    const estadoElement = document.getElementById('estadoRecepcion');
+    if (estadoElement) {
+        estadoElement.textContent = estadoRecepcion.charAt(0).toUpperCase() + estadoRecepcion.slice(1);
+        estadoElement.className = `estado-${estadoRecepcion}`;
+    }
+    
+    // Actualizar tema
+    if (document.getElementById('temaInput')) {
+        document.getElementById('temaInput').value = temaSesion;
+    }
+    if (document.getElementById('tituloPresentador')) {
+        document.getElementById('tituloPresentador').textContent = temaSesion;
+    }
+    
+    // Actualizar sesión ID
+    if (document.getElementById('sesionId')) {
+        document.getElementById('sesionId').textContent = sesionId;
+    }
+    
+    // Actualizar timestamp
+    if (document.getElementById('ultimaActualizacion')) {
+        document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+    }
+    
+    // Actualizar nube de palabras
+    actualizarNubePalabras();
+}
+
+function actualizarNubePalabras() {
+    const nube = document.getElementById('nubePalabras');
+    if (!nube) {
+        console.error('No se encontró nubePalabras');
+        return;
+    }
+    
+    console.log('☁️ Actualizando nube con', palabras.length, 'palabras');
+    
+    nube.innerHTML = '';
+    
+    if (palabras.length === 0) {
+        let mensaje = 'Esperando que inicies la lluvia de ideas...';
+        if (estadoRecepcion === 'activo') {
+            mensaje = 'Esperando palabras de la audiencia...';
+        }
+        nube.innerHTML = `<div class="placeholder">${mensaje}</div>`;
+        return;
+    }
+    
+    // Mostrar todas las palabras
+    palabras.forEach((item, index) => {
+        const elemento = document.createElement('div');
+        elemento.className = 'palabra';
+        elemento.textContent = item.palabra;
+        elemento.title = `Enviado: ${new Date(item.timestamp).toLocaleTimeString()}`;
+        
+        const colores = [
+            'linear-gradient(135deg, #e74c3c, #c0392b)',
+            'linear-gradient(135deg, #3498db, #2980b9)',
+            'linear-gradient(135deg, #2ecc71, #27ae60)',
+            'linear-gradient(135deg, #9b59b6, #8e44ad)',
+            'linear-gradient(135deg, #f39c12, #d35400)',
+            'linear-gradient(135deg, #1abc9c, #16a085)'
+        ];
+        
+        const colorIndex = index % colores.length;
+        elemento.style.background = colores[colorIndex];
+        
+        nube.appendChild(elemento);
     });
     
-    // Escuchar estado de conexión
-    const connectedRef = ref(database, '.info/connected');
-    onValue(connectedRef, (snapshot) => {
-        const estadoConexion = document.getElementById('estadoConexion');
-        if (estadoConexion) {
-            const conectado = snapshot.val();
-            estadoConexion.textContent = conectado ? 'Conectado ✓' : 'Desconectado ✗';
-            estadoConexion.style.color = conectado ? '#2ecc71' : '#e74c3c';
-            console.log('📡 Estado conexión Firebase:', conectado ? 'CONECTADO' : 'DESCONECTADO');
-        }
-    });
+    console.log('✅ Nube actualizada correctamente');
 }
 
 async function agregarPalabraFirebase(palabraData) {
@@ -134,16 +185,16 @@ async function agregarPalabraFirebase(palabraData) {
             throw new Error('No hay sesión activa');
         }
         
-        const palabraId = 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const palabraId = 'palabra_' + Date.now();
         const palabraRef = ref(database, sesionId + '/palabras/' + palabraId);
         
-        console.log('➕ Agregando palabra a Firebase:', palabraData.palabra);
+        console.log('➕ Agregando palabra:', palabraData.palabra);
         await set(palabraRef, palabraData);
-        console.log('✅ Palabra agregada exitosamente a Firebase');
+        console.log('✅ Palabra agregada exitosamente');
         return true;
         
     } catch (error) {
-        console.error('❌ Error agregando palabra a Firebase:', error);
+        console.error('❌ Error agregando palabra:', error);
         throw error;
     }
 }
@@ -158,7 +209,7 @@ async function actualizarEstadoFirebase() {
             tema: temaSesion,
             timestamp: new Date().toISOString()
         });
-        console.log('🔄 Estado actualizado en Firebase:', estadoRecepcion);
+        console.log('🔄 Estado actualizado:', estadoRecepcion);
     } catch (error) {
         console.error('❌ Error actualizando estado:', error);
     }
@@ -172,183 +223,42 @@ async function limpiarPalabrasFirebase() {
         
         const palabrasRef = ref(database, sesionId + '/palabras');
         await remove(palabrasRef);
-        console.log('🧹 Palabras limpiadas en Firebase');
+        console.log('🧹 Palabras limpiadas');
         return true;
         
     } catch (error) {
-        console.error('❌ Error limpiando palabras en Firebase:', error);
+        console.error('❌ Error limpiando palabras:', error);
         throw error;
     }
 }
 
-// ===== SISTEMA DE ARRASTRE =====
-function inicializarArrastre() {
-    if (!modoArrastre) return;
-    
-    const areaEnunciado = document.getElementById('areaEnunciado');
-    const nubePalabras = document.getElementById('nubePalabras');
-    
-    document.querySelectorAll('.palabra').forEach(palabra => {
-        palabra.setAttribute('draggable', 'true');
-        
-        palabra.addEventListener('dragstart', function(e) {
-            e.dataTransfer.setData('text/plain', palabra.textContent);
-            palabra.classList.add('arrastrando');
-            setTimeout(() => palabra.style.display = 'none', 0);
-        });
-        
-        palabra.addEventListener('dragend', function() {
-            palabra.classList.remove('arrastrando');
-            palabra.style.display = 'block';
-        });
-    });
-    
-    areaEnunciado.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        areaEnunciado.classList.add('palabra-zona-objetivo');
-    });
-    
-    areaEnunciado.addEventListener('dragleave', function() {
-        areaEnunciado.classList.remove('palabra-zona-objetivo');
-    });
-    
-    areaEnunciado.addEventListener('drop', function(e) {
-        e.preventDefault();
-        areaEnunciado.classList.remove('palabra-zona-objetivo');
-        
-        const texto = e.dataTransfer.getData('text/plain');
-        agregarPalabraAEnunciado(texto);
-        
-        document.querySelectorAll('.arrastrando').forEach(p => {
-            p.classList.remove('arrastrando');
-            p.style.display = 'block';
-        });
-    });
-}
-
-function agregarPalabraAEnunciado(texto) {
-    const areaEnunciado = document.getElementById('areaEnunciado');
-    
-    const guia = areaEnunciado.querySelector('.enunciado-guia');
-    if (guia) guia.remove();
-    
-    const palabraElement = document.createElement('div');
-    palabraElement.className = 'palabra en-enunciado';
-    palabraElement.textContent = texto;
-    palabraElement.setAttribute('draggable', 'true');
-    
-    palabraElement.addEventListener('dragstart', function(e) {
-        e.dataTransfer.setData('text/plain', texto);
-        palabraElement.classList.add('arrastrando');
-    });
-    
-    palabraElement.addEventListener('dragend', function() {
-        palabraElement.classList.remove('arrastrando');
-    });
-    
-    palabraElement.addEventListener('dblclick', function() {
-        palabraElement.remove();
-        actualizarEstadoAreaEnunciado();
-    });
-    
-    areaEnunciado.appendChild(palabraElement);
-    areaEnunciado.classList.add('con-palabras');
-}
-
-function actualizarEstadoAreaEnunciado() {
-    const areaEnunciado = document.getElementById('areaEnunciado');
-    const tienePalabras = areaEnunciado.querySelector('.palabra');
-    
-    if (!tienePalabras) {
-        areaEnunciado.classList.remove('con-palabras');
-        if (!areaEnunciado.querySelector('.enunciado-guia')) {
-            const guia = document.createElement('div');
-            guia.className = 'enunciado-guia';
-            guia.textContent = '💡 Arrastra las palabras para formar un enunciado';
-            areaEnunciado.appendChild(guia);
-        }
-    }
-}
-
-function limpiarEnunciado() {
-    const areaEnunciado = document.getElementById('areaEnunciado');
-    areaEnunciado.querySelectorAll('.palabra').forEach(p => p.remove());
-    actualizarEstadoAreaEnunciado();
-}
-
-function exportarEnunciado() {
-    const areaEnunciado = document.getElementById('areaEnunciado');
-    const palabrasEnunciado = Array.from(areaEnunciado.querySelectorAll('.palabra'))
-        .map(p => p.textContent)
-        .join(' ');
-    
-    if (palabrasEnunciado.trim()) {
-        const blob = new Blob([palabrasEnunciado], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `enunciado-${new Date().toISOString().split('T')[0]}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-        alert('✅ Enunciado exportado correctamente');
-    } else {
-        alert('ℹ️ No hay palabras en el área de enunciado');
-    }
-}
-
-function organizarAleatorio() {
-    const nube = document.getElementById('nubePalabras');
-    const palabrasElements = Array.from(nube.querySelectorAll('.palabra'));
-    
-    for (let i = palabrasElements.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        nube.appendChild(palabrasElements[j]);
-    }
-}
-
-function organizarGrid() {
-    const nube = document.getElementById('nubePalabras');
-    nube.style.justifyContent = 'flex-start';
-}
-
 // ===== PRESENTADOR =====
 async function iniciarPresentador() {
-    console.log('🎬 Iniciando presentador...');
-    actualizarUI();
+    console.log('🎬 INICIANDO PRESENTADOR');
+    actualizarInterfazPresentador();
     generarQR();
-    
-    // Si hay una sesión en la URL, usarla
-    const urlParams = new URLSearchParams(window.location.search);
-    const sesionParam = urlParams.get('sesion');
-    
-    if (sesionParam) {
-        sesionId = sesionParam;
-        console.log('🎯 Usando sesión de URL:', sesionId);
-        escucharCambiosFirebase();
-    }
 }
 
 async function iniciarLluvia() {
     const temaInput = document.getElementById('temaInput');
     temaSesion = temaInput.value.trim() || 'Lluvia de Ideas';
-    
     estadoRecepcion = 'activo';
     
     try {
+        console.log('🚀 INICIANDO LLUVIA DE IDEAS...');
         await inicializarSesionFirebase();
-        await actualizarEstadoFirebase();
-        escucharCambiosFirebase(); // ¡IMPORTANTE! Escuchar después de crear la sesión
+        
+        // ¡IMPORTANTE! Escuchar cambios DESPUÉS de crear la sesión
+        escucharCambiosFirebase();
+        
         generarQR();
+        actualizarInterfazPresentador();
         
-        document.getElementById('tituloPresentador').textContent = temaSesion;
-        document.getElementById('sesionId').textContent = sesionId;
-        actualizarUI();
-        
-        console.log('🚀 Lluvia de ideas INICIADA:', { temaSesion, sesionId, estadoRecepcion });
-        alert('✅ Lluvia de ideas INICIADA\n\nBase de datos Firebase activa');
+        console.log('✅ LLUVIA INICIADA:', { temaSesion, sesionId, estadoRecepcion });
+        alert('✅ Lluvia de ideas INICIADA\n\nLos participantes pueden escanear el QR');
         
     } catch (error) {
-        console.error('❌ Error iniciando lluvia de ideas:', error);
+        console.error('❌ Error iniciando lluvia:', error);
         alert('❌ Error iniciando lluvia de ideas');
     }
 }
@@ -356,52 +266,21 @@ async function iniciarLluvia() {
 function pararLluvia() {
     estadoRecepcion = 'inactivo';
     actualizarEstadoFirebase();
-    actualizarUI();
-    console.log('🛑 Lluvia de ideas DETENIDA');
+    actualizarInterfazPresentador();
+    console.log('🛑 Lluvia detenida');
 }
 
 async function limpiarTodo() {
-    if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras de la base de datos?')) {
+    if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras?')) {
         try {
             await limpiarPalabrasFirebase();
-            actualizarNube();
-            limpiarEnunciado();
+            actualizarInterfazPresentador();
             console.log('🧹 Base de datos limpiada');
             alert('✅ Base de datos limpiada correctamente');
         } catch (error) {
-            console.error('❌ Error limpiando base de datos:', error);
+            console.error('❌ Error limpiando:', error);
             alert('❌ Error limpiando base de datos');
         }
-    }
-}
-
-function actualizarUI() {
-    const estadoElement = document.getElementById('estadoRecepcion');
-    if (estadoElement) {
-        estadoElement.textContent = estadoRecepcion.charAt(0).toUpperCase() + estadoRecepcion.slice(1);
-        estadoElement.className = `estado-${estadoRecepcion}`;
-    }
-    
-    const btnIniciar = document.getElementById('btnIniciar');
-    const btnParar = document.getElementById('btnParar');
-    
-    if (btnIniciar && btnParar) {
-        switch(estadoRecepcion) {
-            case 'inactivo':
-                btnIniciar.disabled = false;
-                btnParar.disabled = true;
-                break;
-            case 'activo':
-                btnIniciar.disabled = true;
-                btnParar.disabled = false;
-                break;
-        }
-    }
-    
-    const contador = document.getElementById('contadorPalabras');
-    if (contador) {
-        contador.textContent = palabras.length;
-        console.log('🔢 Contador actualizado:', palabras.length);
     }
 }
 
@@ -419,7 +298,7 @@ function generarQR() {
         
         const urlConParametros = `${urlBase}?${params.toString()}`;
         
-        console.log('📷 Generando QR con parámetros:', urlConParametros);
+        console.log('📷 Generando QR para:', urlConParametros);
         
         const qrPequeno = qrcode(0, 'L');
         qrPequeno.addData(urlConParametros);
@@ -433,7 +312,6 @@ function generarQR() {
         
     } catch (error) {
         console.error('❌ Error generando QR:', error);
-        document.getElementById('qrCode').innerHTML = '<p>Error generando QR</p>';
     }
 }
 
@@ -473,7 +351,6 @@ function ampliarQR() {
         
     } catch (error) {
         console.error('❌ Error ampliando QR:', error);
-        document.getElementById('qrAmpliado').innerHTML = '<p style="color: white; padding: 50px;">Error generando QR</p>';
     }
 }
 
@@ -489,80 +366,17 @@ function copiarURL() {
     try {
         navigator.clipboard.writeText(urlInput.value).then(function() {
             alert('✅ URL copiada al portapapeles');
-        }).catch(function() {
-            document.execCommand('copy');
-            alert('✅ URL copiada al portapapeles');
         });
     } catch (error) {
         alert('❌ Error al copiar la URL');
     }
 }
 
-// ===== NUBE DE PALABRAS =====
-function actualizarNube() {
-    try {
-        const nube = document.getElementById('nubePalabras');
-        const contador = document.getElementById('contadorPalabras');
-        
-        if (!nube) {
-            console.error('❌ No se encontró el elemento nubePalabras');
-            return;
-        }
-        
-        if (contador) {
-            contador.textContent = palabras.length;
-        }
-        
-        nube.innerHTML = '';
-        
-        if (palabras.length === 0) {
-            let mensaje = 'Esperando que inicies la lluvia de ideas...';
-            if (estadoRecepcion === 'activo') {
-                mensaje = 'Esperando palabras de la audiencia...';
-            } else if (estadoRecepcion === 'pausado') {
-                mensaje = 'Recepción pausada';
-            }
-            nube.innerHTML = `<div class="placeholder">${mensaje}</div>`;
-            console.log('💭 Mostrando mensaje de placeholder:', mensaje);
-            return;
-        }
-        
-        console.log('🎨 Renderizando', palabras.length, 'palabras en la nube');
-        
-        palabras.forEach((item, index) => {
-            const elemento = document.createElement('div');
-            elemento.className = 'palabra';
-            elemento.textContent = item.palabra;
-            elemento.title = `Enviado: ${new Date(item.timestamp).toLocaleTimeString()}`;
-            elemento.setAttribute('data-id', item.id);
-            
-            const colores = [
-                'linear-gradient(135deg, #e74c3c, #c0392b)',
-                'linear-gradient(135deg, #3498db, #2980b9)',
-                'linear-gradient(135deg, #2ecc71, #27ae60)',
-                'linear-gradient(135deg, #9b59b6, #8e44ad)',
-                'linear-gradient(135deg, #f39c12, #d35400)',
-                'linear-gradient(135deg, #1abc9c, #16a085)'
-            ];
-            
-            const colorIndex = index % colores.length;
-            elemento.style.background = colores[colorIndex];
-            
-            nube.appendChild(elemento);
-        });
-        
-        setTimeout(() => inicializarArrastre(), 100);
-        
-    } catch (error) {
-        console.error('❌ Error actualizando nube:', error);
-    }
-}
-
 // ===== AUDIENCIA =====
 function iniciarAudiencia() {
-    console.log('👥 Iniciando página de audiencia...');
-    
+    console.log('👥 Iniciando audiencia...');
     procesarParametrosURL();
+    verificarEstado();
     
     const input = document.getElementById('palabraInput');
     if (input) {
@@ -571,8 +385,6 @@ function iniciarAudiencia() {
             if (e.key === 'Enter') enviarPalabra();
         });
     }
-    
-    verificarEstado();
 }
 
 function procesarParametrosURL() {
@@ -586,59 +398,42 @@ function procesarParametrosURL() {
         temaSesion = temaParam ? decodeURIComponent(temaParam) : 'Lluvia de Ideas';
         estadoRecepcion = estadoParam || 'inactivo';
         
-        console.log('📋 Sesión cargada desde URL:', { sesionId, temaSesion, estadoRecepcion });
+        console.log('📋 Sesión cargada desde URL:', sesionId);
     }
 }
 
-async function verificarEstado() {
-    try {
-        const estadoElement = document.getElementById('estado');
-        const input = document.getElementById('palabraInput');
-        const boton = document.getElementById('btnEnviar');
-        const tituloTema = document.getElementById('tituloTema');
-        const subtitulo = document.getElementById('subtitulo');
-        
-        if (!estadoElement || !input || !boton) return;
-        
-        tituloTema.textContent = '🌧️ ' + temaSesion;
-        subtitulo.textContent = `Tema: ${temaSesion}`;
-        
-        if (!sesionId) {
-            estadoElement.textContent = '❌ Escanea el QR del presentador';
+function verificarEstado() {
+    const estadoElement = document.getElementById('estado');
+    const input = document.getElementById('palabraInput');
+    const boton = document.getElementById('btnEnviar');
+    const tituloTema = document.getElementById('tituloTema');
+    const subtitulo = document.getElementById('subtitulo');
+    
+    if (!estadoElement || !input || !boton) return;
+    
+    tituloTema.textContent = '🌧️ ' + temaSesion;
+    subtitulo.textContent = `Tema: ${temaSesion}`;
+    
+    if (!sesionId) {
+        estadoElement.textContent = '❌ Escanea el QR del presentador';
+        estadoElement.className = 'estado-desconectado';
+        input.disabled = true;
+        boton.disabled = true;
+        return;
+    }
+    
+    switch(estadoRecepcion) {
+        case 'activo':
+            estadoElement.textContent = '✅ Recepción ACTIVA - ¡Envía tus ideas!';
+            estadoElement.className = 'estado-activo';
+            input.disabled = false;
+            boton.disabled = false;
+            break;
+        default:
+            estadoElement.textContent = '❌ Recepción INACTIVA';
             estadoElement.className = 'estado-desconectado';
             input.disabled = true;
             boton.disabled = true;
-            input.placeholder = 'Escanea el QR para participar...';
-            return;
-        }
-        
-        switch(estadoRecepcion) {
-            case 'activo':
-                estadoElement.textContent = '✅ Recepción ACTIVA - ¡Envía tus ideas!';
-                estadoElement.className = 'estado-activo';
-                input.disabled = false;
-                boton.disabled = false;
-                input.placeholder = 'Escribe tu idea aquí...';
-                break;
-                
-            case 'pausado':
-                estadoElement.textContent = '⏸️ Recepción PAUSADA';
-                estadoElement.className = 'estado-pausado';
-                input.disabled = true;
-                boton.disabled = true;
-                input.placeholder = 'Recepción pausada...';
-                break;
-                
-            default:
-                estadoElement.textContent = '❌ Recepción INACTIVA';
-                estadoElement.className = 'estado-desconectado';
-                input.disabled = true;
-                boton.disabled = true;
-                input.placeholder = 'Esperando que inicie la sesión...';
-        }
-        
-    } catch (error) {
-        console.error('❌ Error verificando estado:', error);
     }
 }
 
@@ -647,32 +442,29 @@ async function enviarPalabra() {
         const input = document.getElementById('palabraInput');
         const palabra = input.value.trim();
         
-        if (palabra.length === 0) {
-            mostrarMensaje('⚠️ Por favor escribe una palabra', 'error');
+        if (!palabra) {
+            mostrarMensaje('⚠️ Escribe una idea', 'error');
             return;
         }
         
         if (palabra.length > 20) {
-            mostrarMensaje('❌ Máximo 20 caracteres por palabra', 'error');
+            mostrarMensaje('❌ Máximo 20 caracteres', 'error');
             return;
         }
         
         if (!sesionId) {
-            mostrarMensaje('❌ No hay sesión activa. Escanea el QR del presentador.', 'error');
+            mostrarMensaje('❌ Escanea el QR primero', 'error');
             return;
         }
         
         const nuevaPalabra = {
             palabra: palabra,
             timestamp: new Date().toISOString(),
-            id: 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            sesionId: sesionId,
-            userAgent: navigator.userAgent.substring(0, 50)
+            id: 'palabra_' + Date.now(),
+            sesionId: sesionId
         };
         
-        console.log('📤 Enviando palabra:', nuevaPalabra);
-        
-        // Enviar palabra directamente a Firebase
+        console.log('📤 Enviando palabra:', palabra);
         await agregarPalabraFirebase(nuevaPalabra);
         mostrarMensaje('✅ Idea enviada correctamente', 'success');
         
@@ -681,7 +473,7 @@ async function enviarPalabra() {
         
     } catch (error) {
         console.error('❌ Error enviando palabra:', error);
-        mostrarMensaje('❌ Error al enviar la idea. Intenta nuevamente.', 'error');
+        mostrarMensaje('❌ Error al enviar', 'error');
     }
 }
 
@@ -706,14 +498,43 @@ function mostrarMensaje(texto, tipo) {
     }, 3000);
 }
 
-window.onclick = function(event) {
-    const modal = document.getElementById('modalQR');
-    if (event.target === modal) {
-        cerrarQR();
+// Sistema de arrastre (simplificado)
+function limpiarEnunciado() {
+    const areaEnunciado = document.getElementById('areaEnunciado');
+    if (areaEnunciado) {
+        areaEnunciado.querySelectorAll('.palabra').forEach(p => p.remove());
+        if (!areaEnunciado.querySelector('.enunciado-guia')) {
+            const guia = document.createElement('div');
+            guia.className = 'enunciado-guia';
+            guia.textContent = '💡 Arrastra las palabras para formar un enunciado';
+            areaEnunciado.appendChild(guia);
+        }
     }
 }
 
-// Hacer funciones globales para los botones HTML
+function exportarEnunciado() {
+    alert('ℹ️ Función de exportar disponible próximamente');
+}
+
+function organizarAleatorio() {
+    const nube = document.getElementById('nubePalabras');
+    if (nube) {
+        const palabrasElements = Array.from(nube.querySelectorAll('.palabra'));
+        for (let i = palabrasElements.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            nube.appendChild(palabrasElements[j]);
+        }
+    }
+}
+
+function organizarGrid() {
+    const nube = document.getElementById('nubePalabras');
+    if (nube) {
+        nube.style.justifyContent = 'flex-start';
+    }
+}
+
+// Hacer funciones globales
 window.iniciarLluvia = iniciarLluvia;
 window.pararLluvia = pararLluvia;
 window.limpiarTodo = limpiarTodo;
@@ -725,3 +546,10 @@ window.enviarPalabra = enviarPalabra;
 window.ampliarQR = ampliarQR;
 window.cerrarQR = cerrarQR;
 window.copiarURL = copiarURL;
+
+window.onclick = function(event) {
+    const modal = document.getElementById('modalQR');
+    if (event.target === modal) {
+        cerrarQR();
+    }
+};
