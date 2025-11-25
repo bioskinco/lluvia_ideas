@@ -683,7 +683,6 @@ function iniciarAudiencia() {
         });
     }
     
-    setInterval(verificarEstado, 2000);
     verificarEstado();
 }
 
@@ -805,11 +804,14 @@ async function enviarPalabra() {
         
         console.log('Enviando palabra:', nuevaPalabra);
         
-        // En lugar de enviar directamente al Gist, vamos a usar un enfoque diferente
-        // La audiencia no puede escribir en el Gist sin token, así que vamos a simular
-        // el envío y dejar que el presentador actualice desde el Gist
+        // Enviar palabra directamente al Gist público
+        const exito = await enviarPalabraAGist(nuevaPalabra, gistId);
         
-        mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!<br><small>El presentador verá tu idea en unos segundos</small>`, 'success');
+        if (exito) {
+            mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!`, 'success');
+        } else {
+            mostrarMensaje('❌ Error al enviar la palabra. Intenta nuevamente.', 'error');
+        }
         
         input.value = '';
         input.focus();
@@ -817,6 +819,85 @@ async function enviarPalabra() {
     } catch (error) {
         console.error('Error enviando palabra:', error);
         mostrarMensaje('❌ Error al enviar la palabra', 'error');
+    }
+}
+
+async function enviarPalabraAGist(palabraData, targetGistId) {
+    if (!targetGistId) {
+        console.log('No hay Gist ID para enviar');
+        return false;
+    }
+    
+    try {
+        console.log('Obteniendo datos actuales del Gist:', targetGistId);
+        
+        // Primero obtener los datos actuales
+        const response = await fetch(`https://api.github.com/gists/${targetGistId}`);
+        if (!response.ok) {
+            throw new Error(`Error HTTP al obtener: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Datos obtenidos del Gist:', data);
+        
+        // Buscar el archivo correcto
+        let contenido;
+        let fileName;
+        if (data.files['palabras.json']) {
+            contenido = JSON.parse(data.files['palabras.json'].content);
+            fileName = 'palabras.json';
+        } else if (data.files['gistfile1.txt']) {
+            contenido = JSON.parse(data.files['gistfile1.txt'].content);
+            fileName = 'gistfile1.txt';
+        } else {
+            const primerArchivo = Object.keys(data.files)[0];
+            if (primerArchivo) {
+                contenido = JSON.parse(data.files[primerArchivo].content);
+                fileName = primerArchivo;
+            } else {
+                throw new Error('No se encontró ningún archivo en el Gist');
+            }
+        }
+        
+        console.log('Contenido actual:', contenido);
+        
+        // Asegurar que el array de palabras existe
+        if (!contenido.palabras) {
+            contenido.palabras = [];
+        }
+        
+        // Agregar nueva palabra
+        contenido.palabras.push(palabraData);
+        
+        console.log('Contenido actualizado:', contenido);
+        
+        // Guardar de vuelta - SIN TOKEN (Gist público)
+        const updateResponse = await fetch(`https://api.github.com/gists/${targetGistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+                // No incluimos Authorization header porque el Gist es público
+            },
+            body: JSON.stringify({
+                files: {
+                    [fileName]: {
+                        content: JSON.stringify(contenido, null, 2)
+                    }
+                }
+            })
+        });
+        
+        if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            throw new Error(`Error HTTP al guardar: ${updateResponse.status} - ${errorText}`);
+        }
+        
+        console.log('Palabra enviada exitosamente a Gist:', palabraData.palabra);
+        return true;
+        
+    } catch (error) {
+        console.error('Error enviando palabra a Gist:', error);
+        return false;
     }
 }
 
@@ -847,4 +928,3 @@ window.onclick = function(event) {
         cerrarQR();
     }
 }
-
