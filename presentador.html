@@ -10,20 +10,57 @@
     <div class="presentador-container">
         <!-- Panel de Control -->
         <div class="panel-control">
-            <h1>🎯 Control del Presentador</h1>
+            <h1>Control del Presentador</h1>
             
             <div class="controles">
+                <!-- Tema -->
                 <div class="control-grupo">
                     <label for="temaInput">Tema de la sesión:</label>
                     <input type="text" id="temaInput" placeholder="Ej: Ideas para marketing digital" value="Lluvia de Ideas">
                 </div>
                 
+                <!-- Botones -->
                 <div class="botones-control">
                     <button onclick="iniciarLluvia()" id="btnIniciar" class="btn-uniforme btn-iniciar">🚀 Iniciar Lluvia de Ideas</button>
-                    <button onclick="pararLluvia()" id="btnParar" class="btn-uniforme btn-parar" disabled>⏹️ Parar Lluvia</button>
-                    <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Base de Datos</button>
+                    <button onclick="limpiarTodo()" class="btn-uniforme btn-limpiar">🧹 Limpiar Palabras</button>
                 </div>
 
+                <!-- QR Section -->
+                <div class="qr-section-presentador">
+                    <h3>📱 Código QR para la audiencia</h3>
+                    <div class="qr-container-pequeno" id="qrPequeno" onclick="ampliarQR()">
+                        <div id="qrCode"></div>
+                        <p class="qr-leyenda">Click para ampliar</p>
+                    </div>
+                    
+                    <div class="url-alternativa">
+                        <p><strong>URL para compartir:</strong></p>
+                        <input type="text" id="urlInput" readonly>
+                        <button onclick="copiarURL()" class="btn-uniforme btn-copiar">📋 Copiar URL</button>
+                    </div>
+                </div>
+
+                <!-- Estados -->
+                <div class="estados">
+                    <div class="estado-item">
+                        <span>Estado:</span>
+                        <span id="estadoRecepcion" class="estado-inactivo">Inactivo</span>
+                    </div>
+                    <div class="estado-item">
+                        <span>Palabras recibidas:</span>
+                        <span id="contadorPalabras" class="contador">0</span>
+                    </div>
+                    <div class="estado-item">
+                        <span>ID Sesión:</span>
+                        <span id="sesionId">-</span>
+                    </div>
+                    <div class="estado-item">
+                        <span>Última actualización:</span>
+                        <span id="ultimaActualizacion">-</span>
+                    </div>
+                </div>
+
+                <!-- Base de Datos -->
                 <div class="configuracion">
                     <h4>🔧 Base de Datos Firebase</h4>
                     <div class="info-gist">
@@ -31,40 +68,6 @@
                         <p><small>🔗 <strong>Estado:</strong> <span id="estadoConexion">Conectando...</span></small></p>
                     </div>
                 </div>
-            </div>
-            
-            <div class="estados">
-                <div class="estado-item">
-                    <span>Estado:</span>
-                    <span id="estadoRecepcion" class="estado-inactivo">Inactivo</span>
-                </div>
-                <div class="estado-item">
-                    <span>Palabras en DB:</span>
-                    <span id="contadorPalabras" class="contador">0</span>
-                </div>
-                <div class="estado-item">
-                    <span>ID Sesión:</span>
-                    <span id="sesionId">-</span>
-                </div>
-                <div class="estado-item">
-                    <span>Última actualización:</span>
-                    <span id="ultimaActualizacion">-</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- QR Section -->
-        <div class="qr-section-presentador">
-            <h3>📱 Código QR para la audiencia</h3>
-            <div class="qr-container-pequeno" id="qrPequeno" onclick="ampliarQR()">
-                <div id="qrCode"></div>
-                <p class="qr-leyenda">Click para ampliar</p>
-            </div>
-            
-            <div class="url-alternativa">
-                <p><strong>URL para compartir:</strong></p>
-                <input type="text" id="urlInput" readonly>
-                <button onclick="copiarURL()" class="btn-uniforme btn-copiar">📋 Copiar URL</button>
             </div>
         </div>
 
@@ -89,16 +92,20 @@
                     <button onclick="organizarAleatorio()" class="btn-control">🔀 Aleatorio</button>
                     <button onclick="organizarGrid()" class="btn-control">🔲 Rejilla</button>
                     <button onclick="limpiarEnunciado()" class="btn-control">🗑️ Limpiar Orden</button>
-                    <button onclick="exportarEnunciado()" class="btn-control">💾 Exportar</button>
                 </div>
             </div>
             
-            <div id="areaEnunciado" class="area-enunciado">
-                <div class="enunciado-guia">
-                    💡 Arrastra las palabras para formar un enunciado
+            <!-- Área para formar enunciado -->
+            <div class="area-enunciado-container">
+                <h3>💡 Forma tu enunciado</h3>
+                <div id="areaEnunciado" class="area-enunciado">
+                    <div class="enunciado-guia">
+                        Arrastra las palabras aquí para formar un enunciado
+                    </div>
                 </div>
             </div>
             
+            <!-- Nube de palabras -->
             <div id="nubePalabras" class="nube-palabras">
                 <div class="placeholder">Esperando que inicies la lluvia de ideas...</div>
             </div>
