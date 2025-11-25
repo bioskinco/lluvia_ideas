@@ -25,20 +25,10 @@
                 </div>
 
                 <div class="configuracion">
-                    <h4>🔧 Configuración de Base de Datos</h4>
-                    <div class="config-item">
-                        <label for="gistId">ID del Gist:</label>
-                        <input type="text" id="gistId" placeholder="Pega el ID del Gist aquí" value="54887f05f30068b809593420f98c4b99">
-                        <button onclick="cargarGistExistente()" class="btn-small">Cargar</button>
-                    </div>
-                    <div class="config-item">
-                        <label for="githubToken">Token GitHub:</label>
-                        <input type="password" id="githubToken" placeholder="Token personal de GitHub">
-                        <button onclick="guardarConfig()" class="btn-small">Guardar</button>
-                    </div>
+                    <h4>🔧 Base de Datos Firebase</h4>
                     <div class="info-gist">
-                        <p><small>💡 <strong>Para usar la base de datos:</strong> Haz click en "Iniciar Lluvia de Ideas"</small></p>
-                        <p><small>🔗 <strong>Gist Actual:</strong> <span id="gistActual">No configurado</span></small></p>
+                        <p><small>💡 <strong>Base de datos en tiempo real activa</strong></small></p>
+                        <p><small>🔗 <strong>Estado:</strong> <span id="estadoConexion">Conectando...</span></small></p>
                     </div>
                 </div>
             </div>
@@ -116,6 +106,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
