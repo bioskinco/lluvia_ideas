@@ -22,7 +22,8 @@ let estadoRecepcion = 'inactivo';
 let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
 let sesionId = null;
-let escuchandoFirebase = false; // Control para evitar múltiples listeners
+let escuchandoFirebase = false;
+let palabrasEnEnunciado = new Set(); // Para trackear palabras usadas
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -62,7 +63,6 @@ function escucharCambiosFirebase() {
         return;
     }
     
-    // Evitar múltiples listeners
     if (escuchandoFirebase) {
         console.log('Ya se está escuchando Firebase, evitando duplicado...');
         return;
@@ -77,11 +77,9 @@ function escucharCambiosFirebase() {
         const data = snapshot.val();
         
         if (data) {
-            // Convertir objeto de palabras a array y eliminar duplicados
             const palabrasObj = data.palabras || {};
             const palabrasArray = Object.values(palabrasObj);
             
-            // Filtrar duplicados por ID único
             const palabrasUnicas = [];
             const idsVistos = new Set();
             
@@ -98,12 +96,12 @@ function escucharCambiosFirebase() {
             
             console.log('Datos recibidos de Firebase. Palabras únicas:', palabras.length);
             
-            // Actualizar interfaz del presentador
             actualizarInterfazPresentador();
             
         } else {
             console.log('No hay datos en Firebase para:', sesionId);
             palabras = [];
+            palabrasEnEnunciado.clear();
             actualizarInterfazPresentador();
         }
     });
@@ -115,11 +113,9 @@ async function agregarPalabraFirebase(palabraData) {
             throw new Error('No hay sesión activa');
         }
         
-        // Crear ID único basado en timestamp y contenido
         const palabraId = 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const palabraRef = ref(database, sesionId + '/palabras/' + palabraId);
         
-        // Asegurar que tenga ID único
         palabraData.id = palabraId;
         
         await set(palabraRef, palabraData);
@@ -156,7 +152,8 @@ async function limpiarPalabrasFirebase() {
         const palabrasRef = ref(database, sesionId + '/palabras');
         await remove(palabrasRef);
         console.log('Palabras limpiadas de Firebase');
-        escuchandoFirebase = false; // Resetear el flag
+        escuchandoFirebase = false;
+        palabrasEnEnunciado.clear();
         return true;
         
     } catch (error) {
@@ -165,9 +162,8 @@ async function limpiarPalabrasFirebase() {
     }
 }
 
-// ===== SISTEMA DE ARRASTRE (SOLO PARA PRESENTADOR) =====
+// ===== SISTEMA DE ARRASTRE MEJORADO =====
 function inicializarArrastre() {
-    // Solo inicializar arrastre si estamos en el presentador
     if (!document.body.classList.contains('presentador-body')) {
         return;
     }
@@ -182,7 +178,7 @@ function inicializarArrastre() {
     
     console.log('Inicializando sistema de arrastre para presentador...');
     
-    // Limpiar event listeners existentes primero
+    // Limpiar event listeners existentes
     document.querySelectorAll('.palabra').forEach(palabra => {
         palabra.removeEventListener('dragstart', manejarDragStart);
         palabra.removeEventListener('dragend', manejarDragEnd);
@@ -192,10 +188,9 @@ function inicializarArrastre() {
     areaEnunciado.removeEventListener('dragleave', manejarDragLeave);
     areaEnunciado.removeEventListener('drop', manejarDrop);
     
-    // Configurar elementos arrastrables
-    document.querySelectorAll('.palabra').forEach(palabra => {
+    // Configurar elementos arrastrables (solo palabras no usadas)
+    document.querySelectorAll('.palabra:not(.usada)').forEach(palabra => {
         palabra.setAttribute('draggable', 'true');
-        
         palabra.addEventListener('dragstart', manejarDragStart);
         palabra.addEventListener('dragend', manejarDragEnd);
     });
@@ -207,8 +202,11 @@ function inicializarArrastre() {
 }
 
 function manejarDragStart(e) {
-    e.dataTransfer.setData('text/plain', this.textContent);
+    const texto = this.textContent;
+    e.dataTransfer.setData('text/plain', texto);
+    e.dataTransfer.setData('element-id', this.id); // Guardar ID del elemento
     this.classList.add('arrastrando');
+    console.log('Comenzando arrastre de:', texto);
 }
 
 function manejarDragEnd() {
@@ -229,10 +227,81 @@ function manejarDrop(e) {
     this.classList.remove('palabra-zona-objetivo');
     
     const texto = e.dataTransfer.getData('text/plain');
+    const elementoId = e.dataTransfer.getData('element-id');
     
     if (texto) {
-        agregarPalabraAEnunciado(texto);
+        // Verificar si la palabra ya está en el enunciado
+        if (!palabrasEnEnunciado.has(texto)) {
+            agregarPalabraAEnunciado(texto);
+            // Quitar la palabra de la nube
+            quitarPalabraDeNube(elementoId, texto);
+        } else {
+            console.log('La palabra ya está en el enunciado:', texto);
+        }
     }
+}
+
+function quitarPalabraDeNube(elementoId, texto) {
+    // Buscar el elemento por ID o por texto
+    let elemento;
+    if (elementoId) {
+        elemento = document.getElementById(elementoId);
+    }
+    
+    if (!elemento) {
+        // Si no se encuentra por ID, buscar por texto
+        elemento = Array.from(document.querySelectorAll('.palabra')).find(
+            palabra => palabra.textContent === texto && !palabra.classList.contains('usada')
+        );
+    }
+    
+    if (elemento) {
+        // Agregar clase "usada" y hacer animación de desvanecimiento
+        elemento.classList.add('usada');
+        elemento.style.opacity = '0.3';
+        elemento.style.transform = 'scale(0.8)';
+        elemento.style.pointerEvents = 'none';
+        elemento.title = 'Ya usada en el enunciado';
+        
+        // Quitar eventos de arrastre
+        elemento.setAttribute('draggable', 'false');
+        elemento.removeEventListener('dragstart', manejarDragStart);
+        elemento.removeEventListener('dragend', manejarDragEnd);
+        
+        console.log('Palabra quitada de la nube:', texto);
+    }
+    
+    // Agregar a nuestro set de palabras usadas
+    palabrasEnEnunciado.add(texto);
+}
+
+function restaurarPalabraEnNube(texto) {
+    // Buscar el elemento en la nube que coincida con el texto
+    const elementos = document.querySelectorAll('.palabra.usada');
+    let elementoRestaurado = false;
+    
+    elementos.forEach(elemento => {
+        if (elemento.textContent === texto) {
+            elemento.classList.remove('usada');
+            elemento.style.opacity = '1';
+            elemento.style.transform = 'scale(1)';
+            elemento.style.pointerEvents = 'auto';
+            elemento.title = `Enviado: ${elemento.getAttribute('data-timestamp') || 'Reciente'}`;
+            elemento.setAttribute('draggable', 'true');
+            
+            // Restaurar eventos
+            elemento.addEventListener('dragstart', manejarDragStart);
+            elemento.addEventListener('dragend', manejarDragEnd);
+            
+            elementoRestaurado = true;
+            console.log('Palabra restaurada en la nube:', texto);
+        }
+    });
+    
+    // Quitar del set de palabras usadas
+    palabrasEnEnunciado.delete(texto);
+    
+    return elementoRestaurado;
 }
 
 function agregarPalabraAEnunciado(texto) {
@@ -242,34 +311,32 @@ function agregarPalabraAEnunciado(texto) {
     const guia = areaEnunciado.querySelector('.enunciado-guia');
     if (guia) guia.remove();
     
-    // Verificar si ya existe la palabra en el enunciado
-    const palabrasExistentes = Array.from(areaEnunciado.querySelectorAll('.palabra-enunciado'));
-    const yaExiste = palabrasExistentes.some(palabra => palabra.textContent === texto);
-    
-    if (yaExiste) {
-        console.log('La palabra ya existe en el enunciado:', texto);
-        return;
-    }
-    
     // Crear elemento de palabra en el enunciado
     const palabraElement = document.createElement('div');
     palabraElement.className = 'palabra-enunciado';
     palabraElement.textContent = texto;
-    
-    // Hacer que también sea arrastrable para reordenar
     palabraElement.setAttribute('draggable', 'true');
     
     palabraElement.addEventListener('dragstart', manejarDragStart);
     palabraElement.addEventListener('dragend', manejarDragEnd);
     
-    // Doble click para eliminar
+    // Doble click para eliminar y restaurar en nube
     palabraElement.addEventListener('dblclick', function() {
+        const texto = this.textContent;
         this.remove();
+        
+        // Restaurar la palabra en la nube
+        if (restaurarPalabraEnNube(texto)) {
+            console.log('Palabra restaurada al hacer doble clic:', texto);
+        }
+        
         actualizarEstadoAreaEnunciado();
     });
     
     areaEnunciado.appendChild(palabraElement);
     areaEnunciado.classList.add('con-palabras');
+    
+    console.log('Palabra agregada al enunciado:', texto);
 }
 
 function actualizarEstadoAreaEnunciado() {
@@ -290,15 +357,25 @@ function actualizarEstadoAreaEnunciado() {
 function limpiarEnunciado() {
     const areaEnunciado = document.getElementById('areaEnunciado');
     if (areaEnunciado) {
+        // Restaurar todas las palabras del enunciado a la nube
+        const palabrasEnunciado = areaEnunciado.querySelectorAll('.palabra-enunciado');
+        palabrasEnunciado.forEach(palabraElement => {
+            const texto = palabraElement.textContent;
+            restaurarPalabraEnNube(texto);
+        });
+        
+        // Limpiar el enunciado
         areaEnunciado.querySelectorAll('.palabra-enunciado').forEach(p => p.remove());
         actualizarEstadoAreaEnunciado();
+        
+        console.log('Enunciado limpiado, todas las palabras restauradas');
     }
 }
 
 function organizarAleatorio() {
     const nube = document.getElementById('nubePalabras');
     if (nube) {
-        const palabrasElements = Array.from(nube.querySelectorAll('.palabra'));
+        const palabrasElements = Array.from(nube.querySelectorAll('.palabra:not(.usada)'));
         for (let i = palabrasElements.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             nube.appendChild(palabrasElements[j]);
@@ -316,6 +393,7 @@ function organizarGrid() {
 // ===== PRESENTADOR =====
 async function iniciarPresentador() {
     console.log('Iniciando presentador...');
+    palabrasEnEnunciado.clear();
     actualizarInterfazPresentador();
     generarQR();
 }
@@ -343,6 +421,7 @@ async function limpiarTodo() {
     if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras?')) {
         try {
             await limpiarPalabrasFirebase();
+            palabrasEnEnunciado.clear();
             actualizarInterfazPresentador();
             alert('✅ Palabras limpiadas correctamente');
         } catch (error) {
@@ -409,8 +488,18 @@ function actualizarNubePalabras() {
     palabras.forEach((item, index) => {
         const elemento = document.createElement('div');
         elemento.className = 'palabra';
+        elemento.id = 'palabra-' + item.id; // ID único para cada palabra
         elemento.textContent = item.palabra;
+        elemento.setAttribute('data-timestamp', item.timestamp);
         elemento.title = `Enviado: ${new Date(item.timestamp).toLocaleTimeString()}`;
+        
+        // Si la palabra ya está en el enunciado, marcarla como usada
+        if (palabrasEnEnunciado.has(item.palabra)) {
+            elemento.classList.add('usada');
+            elemento.style.opacity = '0.3';
+            elemento.style.pointerEvents = 'none';
+            elemento.title = 'Ya usada en el enunciado';
+        }
         
         const colores = [
             'linear-gradient(135deg, #e74c3c, #c0392b)',
@@ -430,6 +519,8 @@ function actualizarNubePalabras() {
     // Inicializar sistema de arrastre después de agregar las palabras
     setTimeout(() => inicializarArrastre(), 100);
 }
+
+// ... (el resto del código se mantiene igual - funciones QR, audiencia, etc.)
 
 // ===== QR =====
 function generarQR() {
