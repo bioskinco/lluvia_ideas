@@ -80,16 +80,15 @@ function escucharCambiosFirebase() {
             const palabrasObj = data.palabras || {};
             const palabrasArray = Object.values(palabrasObj);
             
-            // FILTRADO MEJORADO - Eliminar duplicados por palabra e ID
+            console.log('Palabras recibidas de Firebase:', palabrasArray.length);
+            
+            // FILTRADO MEJORADO - Solo por ID único
             const palabrasUnicas = [];
-            const palabrasVistas = new Set();
             const idsVistos = new Set();
             
             palabrasArray.forEach(palabra => {
-                const claveUnica = palabra.palabra + '_' + palabra.id;
-                if (!idsVistos.has(palabra.id) && !palabrasVistas.has(palabra.palabra)) {
+                if (palabra.id && !idsVistos.has(palabra.id)) {
                     idsVistos.add(palabra.id);
-                    palabrasVistas.add(palabra.palabra);
                     palabrasUnicas.push(palabra);
                 }
             });
@@ -98,7 +97,7 @@ function escucharCambiosFirebase() {
             temaSesion = data.tema || temaSesion;
             estadoRecepcion = data.estado || estadoRecepcion;
             
-            console.log('Datos recibidos de Firebase. Palabras únicas:', palabras.length);
+            console.log('Palabras únicas después del filtrado:', palabras.length);
             
             actualizarInterfazPresentador();
             
@@ -108,6 +107,9 @@ function escucharCambiosFirebase() {
             palabrasEnEnunciado.clear();
             actualizarInterfazPresentador();
         }
+    }, (error) => {
+        console.error('Error escuchando Firebase:', error);
+        escuchandoFirebase = false;
     });
 }
 
@@ -117,7 +119,8 @@ async function agregarPalabraFirebase(palabraData) {
             throw new Error('No hay sesión activa');
         }
         
-        const palabraId = 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        // Crear ID único más simple
+        const palabraId = 'palabra_' + Date.now();
         const palabraRef = ref(database, sesionId + '/palabras/' + palabraId);
         
         palabraData.id = palabraId;
@@ -709,7 +712,7 @@ async function enviarPalabra() {
         const nuevaPalabra = {
             palabra: palabra,
             timestamp: new Date().toISOString(),
-            id: 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            id: 'palabra_' + Date.now(), // ID más simple
             sesionId: sesionId
         };
         
