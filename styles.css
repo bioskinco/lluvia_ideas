@@ -912,3 +912,38 @@ input[type="text"]:focus {
         font-size: 16px; /* Evitar zoom en iOS */
     }
 }
+
+/* Botón enviar más grande para audiencia */
+.btn-enviar-grande {
+    padding: 18px 25px;
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-enviar-grande:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.btn-enviar-grande:active {
+    transform: translateY(0);
+}
+
+/* Mejorar mensajes */
+.mensaje {
+    text-align: center;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 16px;
+}
