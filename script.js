@@ -281,40 +281,6 @@ function agregarPalabraAEnunciado(texto) {
         actualizarEstadoAreaEnunciado();
     });
     
-    // Permitir reordenamiento dentro del área de enunciado
-    palabraElement.addEventListener('dragover', function(e) {
-        e.preventDefault();
-    });
-    
-    palabraElement.addEventListener('drop', function(e) {
-        e.preventDefault();
-        const textoMovido = e.dataTransfer.getData('text/plain');
-        if (textoMovido) {
-            // Solo permitir reordenar si la palabra no existe ya
-            const palabrasExistentes = Array.from(this.parentNode.querySelectorAll('.palabra-enunciado'));
-            const yaExiste = palabrasExistentes.some(palabra => palabra.textContent === textoMovido);
-            
-            if (!yaExiste) {
-                const nuevaPalabra = document.createElement('div');
-                nuevaPalabra.className = 'palabra-enunciado';
-                nuevaPalabra.textContent = textoMovido;
-                nuevaPalabra.setAttribute('draggable', 'true');
-                
-                // Configurar eventos para la nueva palabra
-                nuevaPalabra.addEventListener('dragstart', manejarDragStart);
-                nuevaPalabra.addEventListener('dragend', manejarDragEnd);
-                nuevaPalabra.addEventListener('dblclick', function() {
-                    this.remove();
-                    restaurarPalabraEnNube(textoMovido);
-                    actualizarEstadoAreaEnunciado();
-                });
-                
-                this.parentNode.insertBefore(nuevaPalabra, this);
-                quitarPalabraDeNube(textoMovido);
-            }
-        }
-    });
-    
     areaEnunciado.appendChild(palabraElement);
     areaEnunciado.classList.add('con-palabras');
 }
@@ -652,6 +618,11 @@ async function enviarPalabra() {
             return;
         }
         
+        if (estadoRecepcion !== 'activo') {
+            mostrarMensaje('❌ La recepción de ideas está inactiva', 'error');
+            return;
+        }
+        
         const nuevaPalabra = {
             palabra: palabra,
             timestamp: new Date().toISOString(),
@@ -667,7 +638,7 @@ async function enviarPalabra() {
         
     } catch (error) {
         console.error('Error enviando palabra:', error);
-        mostrarMensaje('❌ Error al enviar', 'error');
+        mostrarMensaje('❌ Error al enviar la idea', 'error');
     }
 }
 
@@ -685,10 +656,16 @@ function mostrarMensaje(texto, tipo) {
     mensajeDiv.innerHTML = texto;
     mensajeDiv.style.backgroundColor = colores[tipo] || colores.success;
     mensajeDiv.style.color = tipo === 'success' ? '#155724' : '#721c24';
+    mensajeDiv.style.padding = '15px';
+    mensajeDiv.style.borderRadius = '10px';
+    mensajeDiv.style.margin = '15px 0';
+    mensajeDiv.style.textAlign = 'center';
+    mensajeDiv.style.fontWeight = '500';
     
     setTimeout(() => {
         mensajeDiv.innerHTML = '';
         mensajeDiv.style.backgroundColor = 'transparent';
+        mensajeDiv.style.padding = '0';
     }, 3000);
 }
 
