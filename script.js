@@ -141,39 +141,64 @@ function inicializarArrastre() {
     const areaEnunciado = document.getElementById('areaEnunciado');
     const nubePalabras = document.getElementById('nubePalabras');
     
-    if (!areaEnunciado || !nubePalabras) return;
+    if (!areaEnunciado || !nubePalabras) {
+        console.log('Elementos de arrastre no encontrados');
+        return;
+    }
+    
+    // Limpiar event listeners anteriores
+    document.querySelectorAll('.palabra').forEach(palabra => {
+        palabra.removeEventListener('dragstart', manejarDragStart);
+        palabra.removeEventListener('dragend', manejarDragEnd);
+    });
+    
+    areaEnunciado.removeEventListener('dragover', manejarDragOver);
+    areaEnunciado.removeEventListener('dragleave', manejarDragLeave);
+    areaEnunciado.removeEventListener('drop', manejarDrop);
     
     // Configurar elementos arrastrables
     document.querySelectorAll('.palabra').forEach(palabra => {
         palabra.setAttribute('draggable', 'true');
-        
-        palabra.addEventListener('dragstart', function(e) {
-            e.dataTransfer.setData('text/plain', palabra.textContent);
-            palabra.classList.add('arrastrando');
-        });
-        
-        palabra.addEventListener('dragend', function() {
-            palabra.classList.remove('arrastrando');
-        });
+        palabra.addEventListener('dragstart', manejarDragStart);
+        palabra.addEventListener('dragend', manejarDragEnd);
     });
     
     // Configurar zona de destino
-    areaEnunciado.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        areaEnunciado.classList.add('palabra-zona-objetivo');
-    });
+    areaEnunciado.addEventListener('dragover', manejarDragOver);
+    areaEnunciado.addEventListener('dragleave', manejarDragLeave);
+    areaEnunciado.addEventListener('drop', manejarDrop);
     
-    areaEnunciado.addEventListener('dragleave', function() {
-        areaEnunciado.classList.remove('palabra-zona-objetivo');
-    });
+    console.log('Sistema de arrastre inicializado');
+}
+
+function manejarDragStart(e) {
+    e.dataTransfer.setData('text/plain', this.textContent);
+    this.classList.add('arrastrando');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function manejarDragEnd() {
+    this.classList.remove('arrastrando');
+}
+
+function manejarDragOver(e) {
+    e.preventDefault();
+    this.classList.add('palabra-zona-objetivo');
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function manejarDragLeave() {
+    this.classList.remove('palabra-zona-objetivo');
+}
+
+function manejarDrop(e) {
+    e.preventDefault();
+    this.classList.remove('palabra-zona-objetivo');
     
-    areaEnunciado.addEventListener('drop', function(e) {
-        e.preventDefault();
-        areaEnunciado.classList.remove('palabra-zona-objetivo');
-        
-        const texto = e.dataTransfer.getData('text/plain');
+    const texto = e.dataTransfer.getData('text/plain');
+    if (texto) {
         agregarPalabraAEnunciado(texto);
-    });
+    }
 }
 
 function agregarPalabraAEnunciado(texto) {
@@ -187,23 +212,43 @@ function agregarPalabraAEnunciado(texto) {
     const palabraElement = document.createElement('div');
     palabraElement.className = 'palabra-enunciado';
     palabraElement.textContent = texto;
-    
-    // Hacer que también sea arrastrable para reordenar
     palabraElement.setAttribute('draggable', 'true');
     
-    palabraElement.addEventListener('dragstart', function(e) {
-        e.dataTransfer.setData('text/plain', texto);
-        palabraElement.classList.add('arrastrando');
-    });
-    
-    palabraElement.addEventListener('dragend', function() {
-        palabraElement.classList.remove('arrastrando');
-    });
+    // Eventos para la palabra en el enunciado
+    palabraElement.addEventListener('dragstart', manejarDragStart);
+    palabraElement.addEventListener('dragend', manejarDragEnd);
     
     // Doble click para eliminar
     palabraElement.addEventListener('dblclick', function() {
-        palabraElement.remove();
+        this.remove();
         actualizarEstadoAreaEnunciado();
+    });
+    
+    // Permitir reordenamiento dentro del área de enunciado
+    palabraElement.addEventListener('dragover', function(e) {
+        e.preventDefault();
+    });
+    
+    palabraElement.addEventListener('drop', function(e) {
+        e.preventDefault();
+        const textoMovido = e.dataTransfer.getData('text/plain');
+        if (textoMovido) {
+            // Mover la palabra antes o después de esta
+            const nuevaPalabra = document.createElement('div');
+            nuevaPalabra.className = 'palabra-enunciado';
+            nuevaPalabra.textContent = textoMovido;
+            nuevaPalabra.setAttribute('draggable', 'true');
+            
+            // Configurar eventos para la nueva palabra
+            nuevaPalabra.addEventListener('dragstart', manejarDragStart);
+            nuevaPalabra.addEventListener('dragend', manejarDragEnd);
+            nuevaPalabra.addEventListener('dblclick', function() {
+                this.remove();
+                actualizarEstadoAreaEnunciado();
+            });
+            
+            this.parentNode.insertBefore(nuevaPalabra, this);
+        }
     });
     
     areaEnunciado.appendChild(palabraElement);
