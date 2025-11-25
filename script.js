@@ -1,6 +1,6 @@
 // Firebase v9 imports
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
-import { getDatabase, ref, set, onValue, update, remove, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js';
+import { getDatabase, ref, set, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js';
 
 // Firebase configuration - TU CONFIGURACIÓN
 const firebaseConfig = {
@@ -33,40 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ===== ALMACENAMIENTO LOCAL PARA LA SESIÓN =====
-function guardarSesionLocal() {
-    const sesionData = {
-        sesionId: sesionId,
-        temaSesion: temaSesion,
-        estadoRecepcion: estadoRecepcion,
-        timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('lluviaIdeas_sesion_presentador', JSON.stringify(sesionData));
-}
-
-function cargarSesionLocal() {
-    try {
-        const sesionData = JSON.parse(localStorage.getItem('lluviaIdeas_sesion_presentador') || '{}');
-        if (sesionData.sesionId) {
-            sesionId = sesionData.sesionId;
-            temaSesion = sesionData.temaSesion || temaSesion;
-            estadoRecepcion = sesionData.estadoRecepcion || estadoRecepcion;
-            console.log('Sesión cargada desde localStorage:', sesionData);
-            return true;
-        }
-    } catch (error) {
-        console.error('Error cargando sesión local:', error);
-    }
-    return false;
-}
-
 // ===== FIREBASE DATABASE =====
 async function inicializarSesionFirebase() {
     try {
-        // Si no hay sesionId, crear uno nuevo
-        if (!sesionId) {
-            sesionId = 'sesion_' + Date.now();
-        }
+        sesionId = 'sesion_' + Date.now();
         
         const datosIniciales = {
             tema: temaSesion,
@@ -78,10 +48,6 @@ async function inicializarSesionFirebase() {
         
         await set(ref(database, sesionId), datosIniciales);
         console.log('Sesión Firebase inicializada:', sesionId);
-        
-        // Guardar en localStorage
-        guardarSesionLocal();
-        
         return sesionId;
         
     } catch (error) {
@@ -92,17 +58,19 @@ async function inicializarSesionFirebase() {
 
 function escucharCambiosFirebase() {
     if (!sesionId) {
-        console.log('No hay sesionId para escuchar cambios');
+        console.error('No hay sesionId para escuchar cambios');
         return;
     }
+    
+    console.log('Escuchando cambios en Firebase para sesión:', sesionId);
     
     const sesionRef = ref(database, sesionId);
     
     onValue(sesionRef, (snapshot) => {
         const data = snapshot.val();
+        console.log('📡 Datos recibidos de Firebase:', data);
+        
         if (data) {
-            console.log('Datos recibidos de Firebase:', data);
-            
             // Convertir objeto de palabras a array
             const palabrasArray = data.palabras ? Object.values(data.palabras) : [];
             
@@ -110,8 +78,16 @@ function escucharCambiosFirebase() {
             temaSesion = data.tema || temaSesion;
             estadoRecepcion = data.estado || estadoRecepcion;
             
+            console.log('🔄 Datos procesados:', {
+                palabrasCount: palabras.length,
+                tema: temaSesion,
+                estado: estadoRecepcion,
+                palabrasEjemplo: palabras.slice(0, 3) // Mostrar primeras 3 para debug
+            });
+            
             // Actualizar UI del presentador
             if (document.body.classList.contains('presentador-body')) {
+                console.log('🎯 Actualizando UI del presentador');
                 actualizarUI();
                 actualizarNube();
                 
@@ -129,20 +105,14 @@ function escucharCambiosFirebase() {
                 }
                 if (document.getElementById('estadoConexion')) {
                     document.getElementById('estadoConexion').textContent = 'Conectado ✓';
+                    document.getElementById('estadoConexion').style.color = '#2ecc71';
                 }
             }
-            
-            console.log('Datos actualizados desde Firebase:', { 
-                palabras: palabras.length, 
-                temaSesion, 
-                estadoRecepcion,
-                sesionId 
-            });
         } else {
-            console.log('No se encontraron datos en Firebase para la sesión:', sesionId);
+            console.log('❌ No se encontraron datos en Firebase para la sesión:', sesionId);
         }
     }, (error) => {
-        console.error('Error escuchando cambios de Firebase:', error);
+        console.error('💥 Error escuchando cambios de Firebase:', error);
     });
     
     // Escuchar estado de conexión
@@ -150,8 +120,10 @@ function escucharCambiosFirebase() {
     onValue(connectedRef, (snapshot) => {
         const estadoConexion = document.getElementById('estadoConexion');
         if (estadoConexion) {
-            estadoConexion.textContent = snapshot.val() ? 'Conectado ✓' : 'Desconectado ✗';
-            estadoConexion.style.color = snapshot.val() ? '#2ecc71' : '#e74c3c';
+            const conectado = snapshot.val();
+            estadoConexion.textContent = conectado ? 'Conectado ✓' : 'Desconectado ✗';
+            estadoConexion.style.color = conectado ? '#2ecc71' : '#e74c3c';
+            console.log('📡 Estado conexión Firebase:', conectado ? 'CONECTADO' : 'DESCONECTADO');
         }
     });
 }
@@ -165,12 +137,13 @@ async function agregarPalabraFirebase(palabraData) {
         const palabraId = 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const palabraRef = ref(database, sesionId + '/palabras/' + palabraId);
         
+        console.log('➕ Agregando palabra a Firebase:', palabraData.palabra);
         await set(palabraRef, palabraData);
-        console.log('Palabra agregada a Firebase:', palabraData.palabra);
+        console.log('✅ Palabra agregada exitosamente a Firebase');
         return true;
         
     } catch (error) {
-        console.error('Error agregando palabra a Firebase:', error);
+        console.error('❌ Error agregando palabra a Firebase:', error);
         throw error;
     }
 }
@@ -185,12 +158,9 @@ async function actualizarEstadoFirebase() {
             tema: temaSesion,
             timestamp: new Date().toISOString()
         });
-        
-        // Guardar en localStorage también
-        guardarSesionLocal();
-        
+        console.log('🔄 Estado actualizado en Firebase:', estadoRecepcion);
     } catch (error) {
-        console.error('Error actualizando estado:', error);
+        console.error('❌ Error actualizando estado:', error);
     }
 }
 
@@ -202,11 +172,11 @@ async function limpiarPalabrasFirebase() {
         
         const palabrasRef = ref(database, sesionId + '/palabras');
         await remove(palabrasRef);
-        console.log('Palabras limpiadas en Firebase');
+        console.log('🧹 Palabras limpiadas en Firebase');
         return true;
         
     } catch (error) {
-        console.error('Error limpiando palabras en Firebase:', error);
+        console.error('❌ Error limpiando palabras en Firebase:', error);
         throw error;
     }
 }
@@ -343,23 +313,18 @@ function organizarGrid() {
 
 // ===== PRESENTADOR =====
 async function iniciarPresentador() {
-    console.log('Iniciando presentador...');
-    
-    // Primero intentar cargar sesión existente
-    const sesionCargada = cargarSesionLocal();
-    
-    if (sesionCargada) {
-        console.log('Sesión existente cargada:', { sesionId, temaSesion, estadoRecepcion });
-        // Escuchar cambios de la sesión existente
-        escucharCambiosFirebase();
-        generarQR();
-    }
-    
+    console.log('🎬 Iniciando presentador...');
     actualizarUI();
+    generarQR();
     
-    // Si no hay sesión cargada, mostrar estado inicial
-    if (!sesionCargada) {
-        console.log('No hay sesión existente, mostrando estado inicial');
+    // Si hay una sesión en la URL, usarla
+    const urlParams = new URLSearchParams(window.location.search);
+    const sesionParam = urlParams.get('sesion');
+    
+    if (sesionParam) {
+        sesionId = sesionParam;
+        console.log('🎯 Usando sesión de URL:', sesionId);
+        escucharCambiosFirebase();
     }
 }
 
@@ -372,17 +337,18 @@ async function iniciarLluvia() {
     try {
         await inicializarSesionFirebase();
         await actualizarEstadoFirebase();
+        escucharCambiosFirebase(); // ¡IMPORTANTE! Escuchar después de crear la sesión
         generarQR();
         
         document.getElementById('tituloPresentador').textContent = temaSesion;
         document.getElementById('sesionId').textContent = sesionId;
         actualizarUI();
         
-        console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId);
+        console.log('🚀 Lluvia de ideas INICIADA:', { temaSesion, sesionId, estadoRecepcion });
         alert('✅ Lluvia de ideas INICIADA\n\nBase de datos Firebase activa');
         
     } catch (error) {
-        console.error('Error iniciando lluvia de ideas:', error);
+        console.error('❌ Error iniciando lluvia de ideas:', error);
         alert('❌ Error iniciando lluvia de ideas');
     }
 }
@@ -391,7 +357,7 @@ function pararLluvia() {
     estadoRecepcion = 'inactivo';
     actualizarEstadoFirebase();
     actualizarUI();
-    console.log('Lluvia de ideas DETENIDA');
+    console.log('🛑 Lluvia de ideas DETENIDA');
 }
 
 async function limpiarTodo() {
@@ -400,10 +366,10 @@ async function limpiarTodo() {
             await limpiarPalabrasFirebase();
             actualizarNube();
             limpiarEnunciado();
-            console.log('Base de datos limpiada');
+            console.log('🧹 Base de datos limpiada');
             alert('✅ Base de datos limpiada correctamente');
         } catch (error) {
-            console.error('Error limpiando base de datos:', error);
+            console.error('❌ Error limpiando base de datos:', error);
             alert('❌ Error limpiando base de datos');
         }
     }
@@ -435,6 +401,7 @@ function actualizarUI() {
     const contador = document.getElementById('contadorPalabras');
     if (contador) {
         contador.textContent = palabras.length;
+        console.log('🔢 Contador actualizado:', palabras.length);
     }
 }
 
@@ -452,7 +419,7 @@ function generarQR() {
         
         const urlConParametros = `${urlBase}?${params.toString()}`;
         
-        console.log('Generando QR con parámetros:', urlConParametros);
+        console.log('📷 Generando QR con parámetros:', urlConParametros);
         
         const qrPequeno = qrcode(0, 'L');
         qrPequeno.addData(urlConParametros);
@@ -465,7 +432,7 @@ function generarQR() {
         }
         
     } catch (error) {
-        console.error('Error generando QR:', error);
+        console.error('❌ Error generando QR:', error);
         document.getElementById('qrCode').innerHTML = '<p>Error generando QR</p>';
     }
 }
@@ -505,7 +472,7 @@ function ampliarQR() {
         document.getElementById('modalQR').style.display = 'block';
         
     } catch (error) {
-        console.error('Error ampliando QR:', error);
+        console.error('❌ Error ampliando QR:', error);
         document.getElementById('qrAmpliado').innerHTML = '<p style="color: white; padding: 50px;">Error generando QR</p>';
     }
 }
@@ -537,7 +504,10 @@ function actualizarNube() {
         const nube = document.getElementById('nubePalabras');
         const contador = document.getElementById('contadorPalabras');
         
-        if (!nube) return;
+        if (!nube) {
+            console.error('❌ No se encontró el elemento nubePalabras');
+            return;
+        }
         
         if (contador) {
             contador.textContent = palabras.length;
@@ -553,8 +523,11 @@ function actualizarNube() {
                 mensaje = 'Recepción pausada';
             }
             nube.innerHTML = `<div class="placeholder">${mensaje}</div>`;
+            console.log('💭 Mostrando mensaje de placeholder:', mensaje);
             return;
         }
+        
+        console.log('🎨 Renderizando', palabras.length, 'palabras en la nube');
         
         palabras.forEach((item, index) => {
             const elemento = document.createElement('div');
@@ -581,13 +554,13 @@ function actualizarNube() {
         setTimeout(() => inicializarArrastre(), 100);
         
     } catch (error) {
-        console.error('Error actualizando nube:', error);
+        console.error('❌ Error actualizando nube:', error);
     }
 }
 
 // ===== AUDIENCIA =====
 function iniciarAudiencia() {
-    console.log('Iniciando página de audiencia...');
+    console.log('👥 Iniciando página de audiencia...');
     
     procesarParametrosURL();
     
@@ -613,7 +586,7 @@ function procesarParametrosURL() {
         temaSesion = temaParam ? decodeURIComponent(temaParam) : 'Lluvia de Ideas';
         estadoRecepcion = estadoParam || 'inactivo';
         
-        console.log('Sesión cargada desde URL:', { sesionId, temaSesion, estadoRecepcion });
+        console.log('📋 Sesión cargada desde URL:', { sesionId, temaSesion, estadoRecepcion });
     }
 }
 
@@ -665,7 +638,7 @@ async function verificarEstado() {
         }
         
     } catch (error) {
-        console.error('Error verificando estado:', error);
+        console.error('❌ Error verificando estado:', error);
     }
 }
 
@@ -697,18 +670,18 @@ async function enviarPalabra() {
             userAgent: navigator.userAgent.substring(0, 50)
         };
         
-        console.log('Enviando palabra:', nuevaPalabra);
+        console.log('📤 Enviando palabra:', nuevaPalabra);
         
         // Enviar palabra directamente a Firebase
         await agregarPalabraFirebase(nuevaPalabra);
-        mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!`, 'success');
+        mostrarMensaje('✅ Idea enviada correctamente', 'success');
         
         input.value = '';
         input.focus();
         
     } catch (error) {
-        console.error('Error enviando palabra:', error);
-        mostrarMensaje('❌ Error al enviar la palabra. Intenta nuevamente.', 'error');
+        console.error('❌ Error enviando palabra:', error);
+        mostrarMensaje('❌ Error al enviar la idea. Intenta nuevamente.', 'error');
     }
 }
 
