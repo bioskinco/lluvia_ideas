@@ -33,10 +33,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// ===== ALMACENAMIENTO LOCAL PARA LA SESIÓN =====
+function guardarSesionLocal() {
+    const sesionData = {
+        sesionId: sesionId,
+        temaSesion: temaSesion,
+        estadoRecepcion: estadoRecepcion,
+        timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('lluviaIdeas_sesion_presentador', JSON.stringify(sesionData));
+}
+
+function cargarSesionLocal() {
+    try {
+        const sesionData = JSON.parse(localStorage.getItem('lluviaIdeas_sesion_presentador') || '{}');
+        if (sesionData.sesionId) {
+            sesionId = sesionData.sesionId;
+            temaSesion = sesionData.temaSesion || temaSesion;
+            estadoRecepcion = sesionData.estadoRecepcion || estadoRecepcion;
+            console.log('Sesión cargada desde localStorage:', sesionData);
+            return true;
+        }
+    } catch (error) {
+        console.error('Error cargando sesión local:', error);
+    }
+    return false;
+}
+
 // ===== FIREBASE DATABASE =====
 async function inicializarSesionFirebase() {
     try {
-        sesionId = 'sesion_' + Date.now();
+        // Si no hay sesionId, crear uno nuevo
+        if (!sesionId) {
+            sesionId = 'sesion_' + Date.now();
+        }
         
         const datosIniciales = {
             tema: temaSesion,
@@ -48,6 +78,10 @@ async function inicializarSesionFirebase() {
         
         await set(ref(database, sesionId), datosIniciales);
         console.log('Sesión Firebase inicializada:', sesionId);
+        
+        // Guardar en localStorage
+        guardarSesionLocal();
+        
         return sesionId;
         
     } catch (error) {
@@ -57,13 +91,18 @@ async function inicializarSesionFirebase() {
 }
 
 function escucharCambiosFirebase() {
-    if (!sesionId) return;
+    if (!sesionId) {
+        console.log('No hay sesionId para escuchar cambios');
+        return;
+    }
     
     const sesionRef = ref(database, sesionId);
     
     onValue(sesionRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
+            console.log('Datos recibidos de Firebase:', data);
+            
             // Convertir objeto de palabras a array
             const palabrasArray = data.palabras ? Object.values(data.palabras) : [];
             
@@ -93,8 +132,17 @@ function escucharCambiosFirebase() {
                 }
             }
             
-            console.log('Datos actualizados desde Firebase:', { palabras: palabras.length, temaSesion, estadoRecepcion });
+            console.log('Datos actualizados desde Firebase:', { 
+                palabras: palabras.length, 
+                temaSesion, 
+                estadoRecepcion,
+                sesionId 
+            });
+        } else {
+            console.log('No se encontraron datos en Firebase para la sesión:', sesionId);
         }
+    }, (error) => {
+        console.error('Error escuchando cambios de Firebase:', error);
     });
     
     // Escuchar estado de conexión
@@ -103,6 +151,7 @@ function escucharCambiosFirebase() {
         const estadoConexion = document.getElementById('estadoConexion');
         if (estadoConexion) {
             estadoConexion.textContent = snapshot.val() ? 'Conectado ✓' : 'Desconectado ✗';
+            estadoConexion.style.color = snapshot.val() ? '#2ecc71' : '#e74c3c';
         }
     });
 }
@@ -136,6 +185,10 @@ async function actualizarEstadoFirebase() {
             tema: temaSesion,
             timestamp: new Date().toISOString()
         });
+        
+        // Guardar en localStorage también
+        guardarSesionLocal();
+        
     } catch (error) {
         console.error('Error actualizando estado:', error);
     }
@@ -291,9 +344,23 @@ function organizarGrid() {
 // ===== PRESENTADOR =====
 async function iniciarPresentador() {
     console.log('Iniciando presentador...');
+    
+    // Primero intentar cargar sesión existente
+    const sesionCargada = cargarSesionLocal();
+    
+    if (sesionCargada) {
+        console.log('Sesión existente cargada:', { sesionId, temaSesion, estadoRecepcion });
+        // Escuchar cambios de la sesión existente
+        escucharCambiosFirebase();
+        generarQR();
+    }
+    
     actualizarUI();
-    generarQR();
-    escucharCambiosFirebase();
+    
+    // Si no hay sesión cargada, mostrar estado inicial
+    if (!sesionCargada) {
+        console.log('No hay sesión existente, mostrando estado inicial');
+    }
 }
 
 async function iniciarLluvia() {
