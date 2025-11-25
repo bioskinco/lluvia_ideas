@@ -1090,3 +1090,194 @@ input[type="text"]:focus {
     background: linear-gradient(135deg, #f3e5f5, #e1bee7);
     border: 2px solid #9c27b0;
 }
+
+/* ===== ESTILOS MEJORADOS PARA SISTEMA DE ARRASTRE ===== */
+
+/* Palabras usadas en la nube */
+.palabra[style*="opacity: 0.3"] {
+    text-decoration: line-through;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important;
+}
+
+/* Efectos de arrastre mejorados */
+.palabra.arrastrando {
+    opacity: 0.4 !important;
+    transform: scale(0.9) rotate(-5deg) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+    z-index: 1000;
+}
+
+/* Área de enunciado con mejor feedback */
+.area-enunciado.palabra-zona-objetivo {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.2)) !important;
+    border: 2px dashed #3498db !important;
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
+/* Palabras en el enunciado */
+.palabra-enunciado {
+    background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    animation: aparecer 0.3s ease-out;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin: 5px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.palabra-enunciado:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.palabra-enunciado:active {
+    cursor: grabbing;
+    transform: scale(1.1) rotate(2deg);
+}
+
+.palabra-enunciado.arrastrando {
+    opacity: 0.6;
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Indicador visual para palabras usadas */
+.palabra-usada {
+    opacity: 0.4;
+    background: linear-gradient(135deg, #bdc3c7, #95a5a6) !important;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+
+.palabra-usada:hover {
+    transform: none !important;
+}
+
+/* Mejoras visuales para el área de enunciado */
+.area-enunciado.con-palabras {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(39, 174, 96, 0.1)) !important;
+    border: 2px solid rgba(46, 204, 113, 0.5) !important;
+    min-height: 120px;
+}
+
+/* Efecto de soltar suave */
+@keyframes suaveAparicion {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.palabra-enunciado {
+    animation: suaveAparicion 0.3s ease-out;
+}
+
+/* Responsive para área de enunciado */
+@media (max-width: 768px) {
+    .area-enunciado {
+        min-height: 100px;
+        padding: 15px;
+    }
+    
+    .palabra-enunciado {
+        padding: 10px 15px;
+        font-size: 0.9em;
+        margin: 3px;
+    }
+    
+    .nube-palabras {
+        min-height: 300px;
+    }
+}
+
+/* Efecto de hover mejorado para controles */
+.btn-control {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.btn-control:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Estados visuales mejorados */
+.estado-activo {
+    color: #2ecc71;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+}
+
+.estado-inactivo {
+    color: #e74c3c;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+}
+
+.contador {
+    font-weight: bold;
+    font-size: 1.2em;
+    color: #3498db;
+}
+
+/* Mejoras para la nube de palabras */
+.nube-palabras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-content: flex-start;
+    min-height: 400px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+/* Placeholder mejorado */
+.placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.3em;
+    text-align: center;
+    width: 100%;
+    margin-top: 150px;
+    font-style: italic;
+}
+
+/* Header del área de enunciado */
+.area-enunciado-container h3 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.area-enunciado-container h3::before {
+    content: "💡";
+    font-size: 1.2em;
+}
+
+/* Efectos de transición suaves */
+.palabra, .palabra-enunciado, .area-enunciado {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Mejora visual para el contenedor principal */
+.nube-container {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
