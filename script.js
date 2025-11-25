@@ -1,12 +1,27 @@
-// Configuración
-const CONFIG_KEY = 'lluviaIdeas_config';
-const GIST_ID_FIJO = "677fcb435ce8aa6315385b3fdc75df54";
+// Firebase v9 imports
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+import { getDatabase, ref, set, onValue, update, remove, onDisconnect, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js';
+
+// Firebase configuration - TU CONFIGURACIÓN
+const firebaseConfig = {
+    apiKey: "AIzaSyCfdrKJNp96VdFRvR6vULSXc1MuE05Skgo",
+    authDomain: "palabras-bdf09.firebaseapp.com",
+    databaseURL: "https://palabras-bdf09-default-rtdb.firebaseio.com",
+    projectId: "palabras-bdf09",
+    storageBucket: "palabras-bdf09.firebasestorage.app",
+    messagingSenderId: "627369975568",
+    appId: "1:627369975568:web:2cdf9940ef4a6d67180f95"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+// Variables globales
 let estadoRecepcion = 'inactivo';
 let temaSesion = 'Lluvia de Ideas';
 let palabras = [];
 let sesionId = null;
-let gistId = GIST_ID_FIJO;
-let githubToken = null;
 let modoArrastre = true;
 
 // ===== INICIALIZACIÓN =====
@@ -18,277 +33,128 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ===== CONFIGURACIÓN Y ALMACENAMIENTO =====
-function cargarConfiguracion() {
+// ===== FIREBASE DATABASE =====
+async function inicializarSesionFirebase() {
     try {
-        const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
-        githubToken = config.githubToken || null;
-        temaSesion = config.temaSesion || 'Lluvia de Ideas';
-        sesionId = config.sesionId || generarIdSesion();
+        sesionId = 'sesion_' + Date.now();
         
-        // Siempre usar el Gist ID fijo
-        gistId = GIST_ID_FIJO;
-        
-        if (document.getElementById('gistId')) {
-            document.getElementById('gistId').value = gistId;
-        }
-        if (document.getElementById('githubToken')) {
-            document.getElementById('githubToken').value = githubToken || '';
-        }
-        if (document.getElementById('temaInput')) {
-            document.getElementById('temaInput').value = temaSesion;
-        }
-        if (document.getElementById('gistActual')) {
-            document.getElementById('gistActual').textContent = gistId;
-        }
-        
-        console.log('Configuración cargada:', { gistId, temaSesion, sesionId });
-        
-    } catch (error) {
-        console.error('Error cargando configuración:', error);
-    }
-}
-
-function guardarConfiguracion() {
-    const config = {
-        gistId: gistId,
-        githubToken: githubToken,
-        temaSesion: temaSesion,
-        sesionId: sesionId,
-        timestamp: new Date().toISOString()
-    };
-    
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    console.log('Configuración guardada');
-}
-
-function guardarConfig() {
-    const tokenInput = document.getElementById('githubToken');
-    
-    if (tokenInput) githubToken = tokenInput.value.trim();
-    
-    guardarConfiguracion();
-    alert('✅ Configuración guardada');
-    
-    if (gistId) {
-        cargarDatosDesdeGist();
-    }
-}
-
-function generarIdSesion() {
-    return 'sesion_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
-// ===== GITHUB GISTS API =====
-async function inicializarGistExistente() {
-    try {
         const datosIniciales = {
             tema: temaSesion,
             estado: estadoRecepcion,
             sesionId: sesionId,
-            palabras: [],
+            palabras: {},
             timestamp: new Date().toISOString()
         };
         
-        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(githubToken && { 'Authorization': `token ${githubToken}` })
-            },
-            body: JSON.stringify({
-                description: `Lluvia de Ideas - ${temaSesion}`,
-                files: {
-                    'palabras.json': {
-                        content: JSON.stringify(datosIniciales, null, 2)
-                    }
-                }
-            })
-        });
+        await set(ref(database, sesionId), datosIniciales);
+        console.log('Sesión Firebase inicializada:', sesionId);
+        return sesionId;
         
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+    } catch (error) {
+        console.error('Error inicializando Firebase:', error);
+        throw error;
+    }
+}
+
+function escucharCambiosFirebase() {
+    if (!sesionId) return;
+    
+    const sesionRef = ref(database, sesionId);
+    
+    onValue(sesionRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Convertir objeto de palabras a array
+            const palabrasArray = data.palabras ? Object.values(data.palabras) : [];
+            
+            palabras = palabrasArray;
+            temaSesion = data.tema || temaSesion;
+            estadoRecepcion = data.estado || estadoRecepcion;
+            
+            // Actualizar UI del presentador
+            if (document.body.classList.contains('presentador-body')) {
+                actualizarUI();
+                actualizarNube();
+                
+                if (document.getElementById('temaInput')) {
+                    document.getElementById('temaInput').value = temaSesion;
+                }
+                if (document.getElementById('tituloPresentador')) {
+                    document.getElementById('tituloPresentador').textContent = temaSesion;
+                }
+                if (document.getElementById('sesionId')) {
+                    document.getElementById('sesionId').textContent = sesionId;
+                }
+                if (document.getElementById('ultimaActualizacion')) {
+                    document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
+                }
+                if (document.getElementById('estadoConexion')) {
+                    document.getElementById('estadoConexion').textContent = 'Conectado ✓';
+                }
+            }
+            
+            console.log('Datos actualizados desde Firebase:', { palabras: palabras.length, temaSesion, estadoRecepcion });
+        }
+    });
+    
+    // Escuchar estado de conexión
+    const connectedRef = ref(database, '.info/connected');
+    onValue(connectedRef, (snapshot) => {
+        const estadoConexion = document.getElementById('estadoConexion');
+        if (estadoConexion) {
+            estadoConexion.textContent = snapshot.val() ? 'Conectado ✓' : 'Desconectado ✗';
+        }
+    });
+}
+
+async function agregarPalabraFirebase(palabraData) {
+    try {
+        if (!sesionId) {
+            throw new Error('No hay sesión activa');
         }
         
-        guardarConfiguracion();
-        document.getElementById('gistActual').textContent = gistId;
+        const palabraId = 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const palabraRef = ref(database, sesionId + '/palabras/' + palabraId);
         
-        console.log('Gist inicializado:', gistId);
+        await set(palabraRef, palabraData);
+        console.log('Palabra agregada a Firebase:', palabraData.palabra);
         return true;
         
     } catch (error) {
-        console.error('Error inicializando Gist:', error);
-        alert('❌ Error inicializando base de datos. Verifica tu token de GitHub.');
-        return false;
+        console.error('Error agregando palabra a Firebase:', error);
+        throw error;
     }
 }
 
-async function cargarDatosDesdeGist() {
-    if (!gistId) {
-        console.log('No hay Gist ID configurado');
-        return;
-    }
+async function actualizarEstadoFirebase() {
+    if (!sesionId) return;
     
     try {
-        const response = await fetch(`https://api.github.com/gists/${gistId}`);
-        
-        if (!response.ok) {
-            if (response.status === 404) {
-                console.log('El Gist no existe:', gistId);
-                return;
-            }
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Datos crudos del Gist:', data);
-        
-        // Buscar el archivo correcto
-        let contenido;
-        if (data.files['palabras.json']) {
-            contenido = JSON.parse(data.files['palabras.json'].content);
-        } else if (data.files['gistfile1.txt']) {
-            contenido = JSON.parse(data.files['gistfile1.txt'].content);
-        } else {
-            const primerArchivo = Object.keys(data.files)[0];
-            if (primerArchivo) {
-                contenido = JSON.parse(data.files[primerArchivo].content);
-            } else {
-                console.log('No se encontró ningún archivo en el Gist');
-                return;
-            }
-        }
-        
-        console.log('Contenido del Gist:', contenido);
-        
-        // Actualizar variables globales
-        palabras = contenido.palabras || [];
-        temaSesion = contenido.tema || temaSesion;
-        estadoRecepcion = contenido.estado || estadoRecepcion;
-        sesionId = contenido.sesionId || sesionId;
-        
-        // Actualizar UI
-        if (document.getElementById('temaInput')) {
-            document.getElementById('temaInput').value = temaSesion;
-        }
-        if (document.getElementById('tituloPresentador')) {
-            document.getElementById('tituloPresentador').textContent = temaSesion;
-        }
-        if (document.getElementById('sesionId')) {
-            document.getElementById('sesionId').textContent = sesionId;
-        }
-        if (document.getElementById('gistActual')) {
-            document.getElementById('gistActual').textContent = gistId;
-        }
-        if (document.getElementById('ultimaActualizacion')) {
-            document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
-        }
-        
-        actualizarUI();
-        actualizarNube();
-        
-        console.log('Datos cargados desde Gist:', { palabras: palabras.length, temaSesion, estadoRecepcion });
-        
-    } catch (error) {
-        console.error('Error cargando desde Gist:', error);
-    }
-}
-
-async function guardarDatosEnGist() {
-    if (!gistId) {
-        console.log('No hay Gist ID para guardar');
-        return false;
-    }
-    
-    try {
-        const datos = {
-            tema: temaSesion,
+        const sesionRef = ref(database, sesionId);
+        await update(sesionRef, {
             estado: estadoRecepcion,
-            sesionId: sesionId,
-            palabras: palabras,
+            tema: temaSesion,
             timestamp: new Date().toISOString()
-        };
-        
-        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(githubToken && { 'Authorization': `token ${githubToken}` })
-            },
-            body: JSON.stringify({
-                description: `Lluvia de Ideas - ${temaSesion}`,
-                files: {
-                    'palabras.json': {
-                        content: JSON.stringify(datos, null, 2)
-                    }
-                }
-            })
         });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+    } catch (error) {
+        console.error('Error actualizando estado:', error);
+    }
+}
+
+async function limpiarPalabrasFirebase() {
+    try {
+        if (!sesionId) {
+            throw new Error('No hay sesión activa');
         }
         
-        if (document.getElementById('ultimaActualizacion')) {
-            document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString();
-        }
-        console.log('Datos guardados en Gist');
+        const palabrasRef = ref(database, sesionId + '/palabras');
+        await remove(palabrasRef);
+        console.log('Palabras limpiadas en Firebase');
         return true;
         
     } catch (error) {
-        console.error('Error guardando en Gist:', error);
-        return false;
-    }
-}
-
-async function limpiarGist() {
-    if (!gistId) return;
-    
-    try {
-        palabras = [];
-        const datos = {
-            tema: temaSesion,
-            estado: estadoRecepcion,
-            sesionId: sesionId,
-            palabras: [],
-            timestamp: new Date().toISOString()
-        };
-        
-        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(githubToken && { 'Authorization': `token ${githubToken}` })
-            },
-            body: JSON.stringify({
-                files: {
-                    'palabras.json': {
-                        content: JSON.stringify(datos, null, 2)
-                    }
-                }
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
-        
-        actualizarNube();
-        console.log('Gist limpiado');
-        
-    } catch (error) {
-        console.error('Error limpiando Gist:', error);
-    }
-}
-
-function cargarGistExistente() {
-    const gistInput = document.getElementById('gistId');
-    if (gistInput && gistInput.value.trim()) {
-        gistId = gistInput.value.trim();
-        guardarConfiguracion();
-        cargarDatosDesdeGist();
+        console.error('Error limpiando palabras en Firebase:', error);
+        throw error;
     }
 }
 
@@ -425,20 +291,9 @@ function organizarGrid() {
 // ===== PRESENTADOR =====
 async function iniciarPresentador() {
     console.log('Iniciando presentador...');
-    cargarConfiguracion();
     actualizarUI();
-    
-    // Cargar datos existentes del Gist fijo
-    if (gistId) {
-        await cargarDatosDesdeGist();
-    }
-    
     generarQR();
-    
-    // Actualizar cada 3 segundos
-    setInterval(async function() {
-        await cargarDatosDesdeGist();
-    }, 3000);
+    escucharCambiosFirebase();
 }
 
 async function iniciarLluvia() {
@@ -446,50 +301,44 @@ async function iniciarLluvia() {
     temaSesion = temaInput.value.trim() || 'Lluvia de Ideas';
     
     estadoRecepcion = 'activo';
-    sesionId = generarIdSesion();
     
-    // Verificar si tenemos token de GitHub
-    if (!githubToken) {
-        alert('⚠️ Por favor, ingresa tu token de GitHub en la configuración primero y haz clic en "Guardar".');
-        return;
-    }
-    
-    // Inicializar el Gist existente (no crear uno nuevo)
-    const exito = await inicializarGistExistente();
-    if (exito) {
-        guardarConfiguracion();
+    try {
+        await inicializarSesionFirebase();
+        await actualizarEstadoFirebase();
         generarQR();
         
         document.getElementById('tituloPresentador').textContent = temaSesion;
         document.getElementById('sesionId').textContent = sesionId;
         actualizarUI();
         
-        console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId, gistId);
-        alert('✅ Lluvia de ideas INICIADA\n\nUsando Gist: ' + gistId);
+        console.log('Lluvia de ideas INICIADA:', temaSesion, sesionId);
+        alert('✅ Lluvia de ideas INICIADA\n\nBase de datos Firebase activa');
+        
+    } catch (error) {
+        console.error('Error iniciando lluvia de ideas:', error);
+        alert('❌ Error iniciando lluvia de ideas');
     }
 }
 
 function pararLluvia() {
     estadoRecepcion = 'inactivo';
-    guardarConfiguracion();
-    guardarDatosEnGist();
+    actualizarEstadoFirebase();
     actualizarUI();
     console.log('Lluvia de ideas DETENIDA');
 }
 
 async function limpiarTodo() {
     if (confirm('¿Estás seguro de que quieres eliminar TODAS las palabras de la base de datos?')) {
-        palabras = [];
-        
-        if (gistId) {
-            await limpiarGist();
+        try {
+            await limpiarPalabrasFirebase();
+            actualizarNube();
+            limpiarEnunciado();
+            console.log('Base de datos limpiada');
+            alert('✅ Base de datos limpiada correctamente');
+        } catch (error) {
+            console.error('Error limpiando base de datos:', error);
+            alert('❌ Error limpiando base de datos');
         }
-        
-        guardarConfiguracion();
-        actualizarNube();
-        limpiarEnunciado();
-        console.log('Base de datos limpiada');
-        alert('✅ Base de datos limpiada correctamente');
     }
 }
 
@@ -513,11 +362,12 @@ function actualizarUI() {
                 btnIniciar.disabled = true;
                 btnParar.disabled = false;
                 break;
-            case 'pausado':
-                btnIniciar.disabled = true;
-                btnParar.disabled = false;
-                break;
         }
+    }
+    
+    const contador = document.getElementById('contadorPalabras');
+    if (contador) {
+        contador.textContent = palabras.length;
     }
 }
 
@@ -528,10 +378,9 @@ function generarQR() {
         let urlBase = currentUrl.replace('presentador.html', 'index.html');
         
         const params = new URLSearchParams({
-            sesion: sesionId,
+            sesion: sesionId || '',
             tema: encodeURIComponent(temaSesion),
-            estado: estadoRecepcion,
-            gist: gistId || ''
+            estado: estadoRecepcion
         });
         
         const urlConParametros = `${urlBase}?${params.toString()}`;
@@ -544,7 +393,9 @@ function generarQR() {
         document.getElementById('qrCode').innerHTML = qrPequeno.createImgTag(3);
         
         document.getElementById('urlInput').value = urlConParametros;
-        document.getElementById('sesionId').textContent = sesionId;
+        if (document.getElementById('sesionId')) {
+            document.getElementById('sesionId').textContent = sesionId || '-';
+        }
         
     } catch (error) {
         console.error('Error generando QR:', error);
@@ -558,11 +409,9 @@ function ampliarQR() {
         let urlBase = currentUrl.replace('presentador.html', 'index.html');
         
         const params = new URLSearchParams({
-            sesion: sesionId,
+            sesion: sesionId || '',
             tema: encodeURIComponent(temaSesion),
-            estado: estadoRecepcion,
-            gist: gistId || '',
-            timestamp: Date.now()
+            estado: estadoRecepcion
         });
         
         const urlConParametros = `${urlBase}?${params.toString()}`;
@@ -691,30 +540,18 @@ function procesarParametrosURL() {
     const sesionParam = urlParams.get('sesion');
     const temaParam = urlParams.get('tema');
     const estadoParam = urlParams.get('estado');
-    const gistParam = urlParams.get('gist');
     
     if (sesionParam) {
-        const datosSesion = {
-            sesionId: sesionParam,
-            tema: temaParam ? decodeURIComponent(temaParam) : 'Lluvia de Ideas',
-            estado: estadoParam || 'inactivo',
-            gistId: gistParam || '',
-            timestamp: Date.now()
-        };
+        sesionId = sesionParam;
+        temaSesion = temaParam ? decodeURIComponent(temaParam) : 'Lluvia de Ideas';
+        estadoRecepcion = estadoParam || 'inactivo';
         
-        localStorage.setItem('lluviaIdeas_sesion_audiencia', JSON.stringify(datosSesion));
-        console.log('Sesión cargada desde URL:', datosSesion);
+        console.log('Sesión cargada desde URL:', { sesionId, temaSesion, estadoRecepcion });
     }
 }
 
 async function verificarEstado() {
     try {
-        const datosSesion = JSON.parse(localStorage.getItem('lluviaIdeas_sesion_audiencia') || '{}');
-        const estado = datosSesion.estado || 'inactivo';
-        const tema = datosSesion.tema || 'Lluvia de Ideas';
-        const sesionId = datosSesion.sesionId;
-        const gistId = datosSesion.gistId;
-        
         const estadoElement = document.getElementById('estado');
         const input = document.getElementById('palabraInput');
         const boton = document.getElementById('btnEnviar');
@@ -723,8 +560,8 @@ async function verificarEstado() {
         
         if (!estadoElement || !input || !boton) return;
         
-        tituloTema.textContent = '🌧️ ' + tema;
-        subtitulo.textContent = `Tema: ${tema}`;
+        tituloTema.textContent = '🌧️ ' + temaSesion;
+        subtitulo.textContent = `Tema: ${temaSesion}`;
         
         if (!sesionId) {
             estadoElement.textContent = '❌ Escanea el QR del presentador';
@@ -735,7 +572,7 @@ async function verificarEstado() {
             return;
         }
         
-        switch(estado) {
+        switch(estadoRecepcion) {
             case 'activo':
                 estadoElement.textContent = '✅ Recepción ACTIVA - ¡Envía tus ideas!';
                 estadoElement.className = 'estado-activo';
@@ -780,124 +617,31 @@ async function enviarPalabra() {
             return;
         }
         
-        const datosSesion = JSON.parse(localStorage.getItem('lluviaIdeas_sesion_audiencia') || '{}');
-        const sesionId = datosSesion.sesionId;
-        const gistId = datosSesion.gistId;
-        
         if (!sesionId) {
             mostrarMensaje('❌ No hay sesión activa. Escanea el QR del presentador.', 'error');
-            return;
-        }
-        
-        if (!gistId) {
-            mostrarMensaje('❌ No hay base de datos configurada.', 'error');
             return;
         }
         
         const nuevaPalabra = {
             palabra: palabra,
             timestamp: new Date().toISOString(),
-            id: Date.now() + Math.random(),
+            id: 'palabra_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             sesionId: sesionId,
             userAgent: navigator.userAgent.substring(0, 50)
         };
         
         console.log('Enviando palabra:', nuevaPalabra);
         
-        // Enviar palabra directamente al Gist público
-        const exito = await enviarPalabraAGist(nuevaPalabra, gistId);
-        
-        if (exito) {
-            mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!`, 'success');
-        } else {
-            mostrarMensaje('❌ Error al enviar la palabra. Intenta nuevamente.', 'error');
-        }
+        // Enviar palabra directamente a Firebase
+        await agregarPalabraFirebase(nuevaPalabra);
+        mostrarMensaje(`✅ ¡Ideas enviada: "<strong>${palabra}</strong>"!`, 'success');
         
         input.value = '';
         input.focus();
         
     } catch (error) {
         console.error('Error enviando palabra:', error);
-        mostrarMensaje('❌ Error al enviar la palabra', 'error');
-    }
-}
-
-async function enviarPalabraAGist(palabraData, targetGistId) {
-    if (!targetGistId) {
-        console.log('No hay Gist ID para enviar');
-        return false;
-    }
-    
-    try {
-        console.log('Obteniendo datos actuales del Gist:', targetGistId);
-        
-        // Primero obtener los datos actuales
-        const response = await fetch(`https://api.github.com/gists/${targetGistId}`);
-        if (!response.ok) {
-            throw new Error(`Error HTTP al obtener: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Datos obtenidos del Gist:', data);
-        
-        // Buscar el archivo correcto
-        let contenido;
-        let fileName;
-        if (data.files['palabras.json']) {
-            contenido = JSON.parse(data.files['palabras.json'].content);
-            fileName = 'palabras.json';
-        } else if (data.files['gistfile1.txt']) {
-            contenido = JSON.parse(data.files['gistfile1.txt'].content);
-            fileName = 'gistfile1.txt';
-        } else {
-            const primerArchivo = Object.keys(data.files)[0];
-            if (primerArchivo) {
-                contenido = JSON.parse(data.files[primerArchivo].content);
-                fileName = primerArchivo;
-            } else {
-                throw new Error('No se encontró ningún archivo en el Gist');
-            }
-        }
-        
-        console.log('Contenido actual:', contenido);
-        
-        // Asegurar que el array de palabras existe
-        if (!contenido.palabras) {
-            contenido.palabras = [];
-        }
-        
-        // Agregar nueva palabra
-        contenido.palabras.push(palabraData);
-        
-        console.log('Contenido actualizado:', contenido);
-        
-        // Guardar de vuelta - SIN TOKEN (Gist público)
-        const updateResponse = await fetch(`https://api.github.com/gists/${targetGistId}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json'
-                // No incluimos Authorization header porque el Gist es público
-            },
-            body: JSON.stringify({
-                files: {
-                    [fileName]: {
-                        content: JSON.stringify(contenido, null, 2)
-                    }
-                }
-            })
-        });
-        
-        if (!updateResponse.ok) {
-            const errorText = await updateResponse.text();
-            throw new Error(`Error HTTP al guardar: ${updateResponse.status} - ${errorText}`);
-        }
-        
-        console.log('Palabra enviada exitosamente a Gist:', palabraData.palabra);
-        return true;
-        
-    } catch (error) {
-        console.error('Error enviando palabra a Gist:', error);
-        return false;
+        mostrarMensaje('❌ Error al enviar la palabra. Intenta nuevamente.', 'error');
     }
 }
 
@@ -928,3 +672,16 @@ window.onclick = function(event) {
         cerrarQR();
     }
 }
+
+// Hacer funciones globales para los botones HTML
+window.iniciarLluvia = iniciarLluvia;
+window.pararLluvia = pararLluvia;
+window.limpiarTodo = limpiarTodo;
+window.organizarAleatorio = organizarAleatorio;
+window.organizarGrid = organizarGrid;
+window.limpiarEnunciado = limpiarEnunciado;
+window.exportarEnunciado = exportarEnunciado;
+window.enviarPalabra = enviarPalabra;
+window.ampliarQR = ampliarQR;
+window.cerrarQR = cerrarQR;
+window.copiarURL = copiarURL;
