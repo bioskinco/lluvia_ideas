@@ -1048,3 +1048,45 @@ input[type="text"]:focus {
 .configuracion {
     order: 5;
 }
+
+/* Estilos mejorados para arrastre */
+.palabra {
+    cursor: grab;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.palabra:active {
+    cursor: grabbing;
+    transform: scale(1.05);
+}
+
+.palabra.arrastrando {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.area-enunciado.palabra-zona-objetivo {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: 2px dashed #2196f3;
+}
+
+.palabra-enunciado {
+    cursor: grab;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.palabra-enunciado:active {
+    cursor: grabbing;
+}
+
+.palabra-enunciado.arrastrando {
+    opacity: 0.5;
+}
+
+/* Efecto visual al tener palabras en el enunciado */
+.area-enunciado.con-palabras {
+    background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+    border: 2px solid #9c27b0;
+}
