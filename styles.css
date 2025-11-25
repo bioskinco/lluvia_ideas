@@ -1,4 +1,4 @@
-/* Estilos generales */
+/* ===== ESTILOS GENERALES ===== */
 * {
     margin: 0;
     padding: 0;
@@ -12,7 +12,7 @@ body {
     line-height: 1.6;
 }
 
-/* PÁGINA DE LA AUDIENCIA */
+/* ===== PÁGINA DE LA AUDIENCIA ===== */
 .pagina-audiencia {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 20px;
@@ -28,7 +28,6 @@ body {
     backdrop-filter: blur(10px);
 }
 
-/* Header */
 .header {
     text-align: center;
     margin-bottom: 30px;
@@ -48,7 +47,6 @@ body {
     font-size: 1.1em;
 }
 
-/* Sección de entrada */
 .input-section {
     display: flex;
     flex-direction: column;
@@ -71,7 +69,7 @@ input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-/* BOTONES UNIFORMES */
+/* ===== BOTONES ===== */
 .btn-uniforme {
     padding: 15px 20px;
     border: none;
@@ -97,49 +95,76 @@ input[type="text"]:focus {
     transform: none;
 }
 
-.btn-iniciar {
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
+.btn-iniciar { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; }
+.btn-pausar { background: linear-gradient(135deg, #f39c12, #d35400); color: white; }
+.btn-parar { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+.btn-limpiar { background: linear-gradient(135deg, #95a5a6, #7f8c8d); color: white; }
+.btn-copiar { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; padding: 12px 20px; font-size: 14px; }
+.btn-cerrar { background: linear-gradient(135deg, #34495e, #2c3e50); color: white; margin-top: 15px; }
+.btn-exportar { background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
+
+.btn-enviar-grande {
+    padding: 18px 25px;
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    margin-top: 10px;
 }
 
-.btn-pausar {
-    background: linear-gradient(135deg, #f39c12, #d35400);
-    color: white;
+.btn-enviar-grande:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
-.btn-parar {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
+.btn-control {
+    background: rgba(255, 255, 255, 0.2);
     color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 0 5px;
+    font-size: 12px;
+    transition: all 0.3s ease;
 }
 
-.btn-limpiar {
-    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-    color: white;
+.btn-control:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
 }
 
-.btn-copiar {
-    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+.btn-small {
+    background: rgba(255, 255, 255, 0.2);
     color: white;
-    padding: 12px 20px;
-    font-size: 14px;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-top: 5px;
 }
 
-.btn-cerrar {
-    background: linear-gradient(135deg, #34495e, #2c3e50);
-    color: white;
-    margin-top: 15px;
+.btn-small:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
-/* Mensajes */
+/* ===== MENSAJES Y ESTADOS ===== */
 .mensaje {
     text-align: center;
     padding: 15px;
     margin: 15px 0;
     border-radius: 10px;
     font-weight: 500;
+    font-size: 16px;
 }
 
-/* Estados de conexión */
 .estado-conexion {
     text-align: center;
     margin: 20px 0;
@@ -172,7 +197,6 @@ input[type="text"]:focus {
     font-weight: 600;
 }
 
-/* Información */
 .info {
     background: rgba(255, 255, 255, 0.8);
     padding: 20px;
@@ -189,7 +213,7 @@ input[type="text"]:focus {
     margin-bottom: 8px;
 }
 
-/* ESTILOS PARA EL PRESENTADOR */
+/* ===== ESTILOS PARA EL PRESENTADOR ===== */
 .presentador-body {
     background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
     color: white;
@@ -205,13 +229,15 @@ input[type="text"]:focus {
     align-items: start;
 }
 
-/* Panel de Control */
 .panel-control {
     background: rgba(255, 255, 255, 0.1);
     padding: 25px;
     border-radius: 20px;
     backdrop-filter: blur(10px);
     grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .panel-control h1 {
@@ -222,6 +248,9 @@ input[type="text"]:focus {
 
 .controles {
     margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .control-grupo {
@@ -249,11 +278,11 @@ input[type="text"]:focus {
     gap: 8px;
 }
 
-/* Estados */
 .estados {
     background: rgba(255, 255, 255, 0.1);
     padding: 15px;
     border-radius: 10px;
+    order: 4;
 }
 
 .estado-item {
@@ -269,27 +298,16 @@ input[type="text"]:focus {
     margin-bottom: 0;
 }
 
-.estado-activo {
-    color: #2ecc71;
-    font-weight: bold;
-}
-
-.estado-pausado {
-    color: #f39c12;
-    font-weight: bold;
-}
-
-.estado-inactivo {
-    color: #e74c3c;
-    font-weight: bold;
-}
+.estado-activo { color: #2ecc71; font-weight: bold; text-shadow: 0 0 10px rgba(46, 204, 113, 0.3); }
+.estado-pausado { color: #f39c12; font-weight: bold; }
+.estado-inactivo { color: #e74c3c; font-weight: bold; text-shadow: 0 0 10px rgba(231, 76, 60, 0.3); }
 
 .contador {
     font-weight: bold;
     font-size: 1.2em;
+    color: #3498db;
 }
 
-/* QR Section en Presentador */
 .qr-section-presentador {
     background: rgba(255, 255, 255, 0.1);
     padding: 20px;
@@ -297,6 +315,7 @@ input[type="text"]:focus {
     backdrop-filter: blur(10px);
     text-align: center;
     grid-column: 1;
+    order: 3;
 }
 
 .qr-container-pequeno {
@@ -333,7 +352,237 @@ input[type="text"]:focus {
     color: #333;
 }
 
-/* Modal QR Ampliado - ESTILO TABLET */
+.configuracion {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    order: 5;
+}
+
+.configuracion h4 {
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+.config-item {
+    margin-bottom: 12px;
+}
+
+.config-item label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.config-item input {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.info-gist {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+.info-gist p {
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+/* ===== NUBE DE PALABRAS ===== */
+.nube-container {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 25px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    min-height: 80vh;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.nube-container h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2em;
+}
+
+.nube-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.controles-nube {
+    display: flex;
+    gap: 5px;
+}
+
+.nube-palabras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-content: flex-start;
+    min-height: 400px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.3em;
+    text-align: center;
+    width: 100%;
+    margin-top: 150px;
+    font-style: italic;
+}
+
+/* ===== SISTEMA DE ARRASTRE ===== */
+.area-enunciado-container {
+    margin-bottom: 20px;
+}
+
+.area-enunciado-container h3 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.area-enunciado-container h3::before {
+    content: "💡";
+    font-size: 1.2em;
+}
+
+.area-enunciado {
+    min-height: 120px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.area-enunciado.con-palabras {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(39, 174, 96, 0.1));
+    border: 2px solid rgba(46, 204, 113, 0.5);
+}
+
+.area-enunciado.palabra-zona-objetivo {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.2));
+    border: 2px dashed #3498db;
+    transform: scale(1.02);
+}
+
+.enunciado-guia {
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    text-align: center;
+    width: 100%;
+    padding: 20px;
+}
+
+/* ===== PALABRAS ===== */
+.palabra {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    padding: 15px 25px;
+    border-radius: 50px;
+    font-size: 1.2em;
+    font-weight: 600;
+    animation: aparecer 0.5s ease-out;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: grab;
+    user-select: none;
+    position: relative;
+}
+
+.palabra:hover {
+    transform: scale(1.05);
+}
+
+.palabra:active {
+    cursor: grabbing;
+    transform: scale(1.1) rotate(2deg);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.palabra.arrastrando {
+    opacity: 0.4;
+    transform: scale(0.9) rotate(-5deg);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+}
+
+/* Palabras usadas */
+.palabra.usada {
+    opacity: 0.3;
+    transform: scale(0.8);
+    pointer-events: none;
+    cursor: not-allowed;
+    text-decoration: line-through;
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+}
+
+.palabra.usada:hover {
+    transform: scale(0.8);
+    cursor: not-allowed;
+}
+
+/* Palabras en enunciado */
+.palabra-enunciado {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    animation: suaveAparicion 0.3s ease-out;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin: 5px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+}
+
+.palabra-enunciado:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.palabra-enunciado:active {
+    cursor: grabbing;
+    transform: scale(1.1) rotate(2deg);
+}
+
+.palabra-enunciado.arrastrando {
+    opacity: 0.6;
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* ===== MODAL QR ===== */
 .modal {
     display: none;
     position: fixed;
@@ -365,11 +614,10 @@ input[type="text"]:focus {
     align-items: center;
 }
 
-/* Simular una tablet */
-.modal-content::before {
+.modal-content::before,
+.modal-content::after {
     content: "";
     position: absolute;
-    top: -10px;
     left: 50%;
     transform: translateX(-50%);
     width: 60px;
@@ -378,16 +626,12 @@ input[type="text"]:focus {
     border-radius: 3px;
 }
 
+.modal-content::before {
+    top: -10px;
+}
+
 .modal-content::after {
-    content: "";
-    position: absolute;
     bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 6px;
-    background: #34495e;
-    border-radius: 3px;
 }
 
 .close {
@@ -435,13 +679,12 @@ input[type="text"]:focus {
 }
 
 .qr-ampliado img {
-    width: 100% !important;
-    height: auto !important;
+    width: 100%;
+    height: auto;
     max-width: 350px;
     border-radius: 10px;
 }
 
-/* Contenido del modal */
 .modal-content h2 {
     font-size: 2em;
     margin-bottom: 10px;
@@ -455,57 +698,7 @@ input[type="text"]:focus {
     line-height: 1.5;
 }
 
-/* Nube de Palabras */
-.nube-container {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 25px;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    min-height: 80vh;
-}
-
-.nube-container h2 {
-    text-align: center;
-    margin-bottom: 25px;
-    font-size: 2em;
-}
-
-.nube-palabras {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    justify-content: center;
-    align-content: flex-start;
-    min-height: 500px;
-    padding: 20px;
-}
-
-.palabra {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    padding: 15px 25px;
-    border-radius: 50px;
-    font-size: 1.2em;
-    font-weight: 600;
-    animation: aparecer 0.5s ease-out;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
-}
-
-.palabra:hover {
-    transform: scale(1.05);
-}
-
-.placeholder {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 1.5em;
-    text-align: center;
-    width: 100%;
-    margin-top: 200px;
-}
-
-/* Animaciones */
+/* ===== ANIMACIONES ===== */
 @keyframes aparecer {
     from { 
         opacity: 0; 
@@ -517,7 +710,18 @@ input[type="text"]:focus {
     }
 }
 
-/* Responsive */
+@keyframes suaveAparicion {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .presentador-container {
         grid-template-columns: 1fr;
@@ -543,6 +747,40 @@ input[type="text"]:focus {
         width: 95%;
         padding: 20px;
     }
+    
+    .nube-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .controles-nube {
+        justify-content: center;
+        margin-top: 10px;
+    }
+    
+    .area-enunciado {
+        min-height: 100px;
+        padding: 15px;
+    }
+    
+    .palabra {
+        padding: 12px 20px;
+        font-size: 1em;
+    }
+    
+    .palabra-enunciado {
+        padding: 10px 15px;
+        font-size: 0.9em;
+        margin: 3px;
+    }
+    
+    .nube-palabras {
+        min-height: 300px;
+    }
+    
+    .config-item input {
+        font-size: 16px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -561,821 +799,5 @@ input[type="text"]:focus {
     .btn-uniforme {
         padding: 12px 15px;
         font-size: 14px;
-    }
-}
-
-/* Agregar estos estilos al CSS existente */
-
-/* Botones adicionales */
-.btn-exportar {
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-}
-
-.btn-control {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 0 5px;
-    font-size: 12px;
-    transition: all 0.3s ease;
-}
-
-.btn-control:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
-}
-
-/* Configuración */
-.configuracion {
-    margin-top: 15px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-.configuracion label {
-    display: block;
-    margin-bottom: 10px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.configuracion input[type="checkbox"] {
-    margin-right: 8px;
-}
-
-/* Header de la nube */
-.nube-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.controles-nube {
-    display: flex;
-    gap: 5px;
-}
-
-/* Área de enunciado */
-.area-enunciado {
-    min-height: 100px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: flex-start;
-    transition: all 0.3s ease;
-}
-
-.area-enunciado.con-palabras {
-    background: rgba(255, 255, 255, 0.1);
-    border-style: solid;
-    border-color: rgba(46, 204, 113, 0.5);
-}
-
-.enunciado-guia {
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
-    text-align: center;
-    width: 100%;
-}
-
-/* Palabras arrastrables */
-.palabra {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    padding: 15px 25px;
-    border-radius: 50px;
-    font-size: 1.2em;
-    font-weight: 600;
-    animation: aparecer 0.5s ease-out;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-    cursor: grab;
-    user-select: none;
-    position: relative;
-}
-
-.palabra:hover {
-    transform: scale(1.05);
-}
-
-.palabra:active {
-    cursor: grabbing;
-    transform: scale(1.1) rotate(2deg);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-.palabra.arrastrando {
-    opacity: 0.8;
-    transform: scale(1.1) rotate(5deg);
-    z-index: 1000;
-}
-
-.palabra.en-enunciado {
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
-    margin: 5px;
-}
-
-/* Estados de arrastre */
-.palabra-zona-objetivo {
-    border: 2px dashed #3498db;
-    background: rgba(52, 152, 219, 0.1);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .nube-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .controles-nube {
-        justify-content: center;
-        margin-top: 10px;
-    }
-    
-    .area-enunciado {
-        min-height: 80px;
-        padding: 15px;
-    }
-    
-    .palabra {
-        padding: 12px 20px;
-        font-size: 1em;
-    }
-}
-
-/* Agregar estos estilos al CSS existente */
-
-/* Configuración de base de datos */
-.configuracion {
-    margin-top: 15px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-.configuracion h4 {
-    margin-bottom: 15px;
-    color: #fff;
-}
-
-.config-item {
-    margin-bottom: 12px;
-}
-
-.config-item label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.config-item input {
-    width: 100%;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 5px;
-    font-size: 14px;
-    margin-bottom: 5px;
-}
-
-.btn-small {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 12px;
-    margin-top: 5px;
-}
-
-.btn-small:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-.info-gist {
-    margin-top: 15px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 5px;
-}
-
-.info-gist p {
-    margin: 5px 0;
-    font-size: 12px;
-}
-
-/* Botones adicionales */
-.btn-exportar {
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-}
-
-.btn-control {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 0 5px;
-    font-size: 12px;
-    transition: all 0.3s ease;
-}
-
-.btn-control:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
-}
-
-/* Header de la nube */
-.nube-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.controles-nube {
-    display: flex;
-    gap: 5px;
-}
-
-/* Área de enunciado */
-.area-enunciado {
-    min-height: 100px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: flex-start;
-    transition: all 0.3s ease;
-}
-
-.area-enunciado.con-palabras {
-    background: rgba(255, 255, 255, 0.1);
-    border-style: solid;
-    border-color: rgba(46, 204, 113, 0.5);
-}
-
-.enunciado-guia {
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
-    text-align: center;
-    width: 100%;
-}
-
-/* Palabras arrastrables */
-.palabra {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    padding: 15px 25px;
-    border-radius: 50px;
-    font-size: 1.2em;
-    font-weight: 600;
-    animation: aparecer 0.5s ease-out;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s ease;
-    cursor: grab;
-    user-select: none;
-    position: relative;
-}
-
-.palabra:hover {
-    transform: scale(1.05);
-}
-
-.palabra:active {
-    cursor: grabbing;
-    transform: scale(1.1) rotate(2deg);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-.palabra.arrastrando {
-    opacity: 0.8;
-    transform: scale(1.1) rotate(5deg);
-    z-index: 1000;
-}
-
-.palabra.en-enunciado {
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
-    margin: 5px;
-}
-
-/* Estados de arrastre */
-.palabra-zona-objetivo {
-    border: 2px dashed #3498db;
-    background: rgba(52, 152, 219, 0.1);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .nube-header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .controles-nube {
-        justify-content: center;
-        margin-top: 10px;
-    }
-    
-    .area-enunciado {
-        min-height: 80px;
-        padding: 15px;
-    }
-    
-    .palabra {
-        padding: 12px 20px;
-        font-size: 1em;
-    }
-    
-    .config-item input {
-        font-size: 16px; /* Evitar zoom en iOS */
-    }
-}
-
-/* Botón enviar más grande para audiencia */
-.btn-enviar-grande {
-    padding: 18px 25px;
-    font-size: 18px;
-    font-weight: bold;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    width: 100%;
-    margin-top: 10px;
-}
-
-.btn-enviar-grande:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.btn-enviar-grande:active {
-    transform: translateY(0);
-}
-
-/* Mejorar mensajes */
-.mensaje {
-    text-align: center;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 10px;
-    font-weight: 500;
-    font-size: 16px;
-}
-
-/* Estilos para el sistema de arrastre */
-.palabra {
-    cursor: grab;
-    user-select: none;
-}
-
-.palabra:active {
-    cursor: grabbing;
-}
-
-.palabra.arrastrando {
-    opacity: 0.6;
-}
-
-.area-enunciado-container {
-    margin-bottom: 20px;
-}
-
-.area-enunciado-container h3 {
-    color: white;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-}
-
-.area-enunciado {
-    min-height: 80px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: flex-start;
-    transition: all 0.3s ease;
-}
-
-.area-enunciado.palabra-zona-objetivo {
-    border-color: #3498db;
-    background: rgba(52, 152, 219, 0.1);
-}
-
-.area-enunciado.con-palabras {
-    background: rgba(255, 255, 255, 0.1);
-    border-style: solid;
-    border-color: rgba(46, 204, 113, 0.5);
-}
-
-.enunciado-guia {
-    color: rgba(255, 255, 255, 0.6);
-    font-style: italic;
-    text-align: center;
-    width: 100%;
-    padding: 20px;
-}
-
-.palabra-enunciado {
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-    padding: 10px 15px;
-    border-radius: 25px;
-    font-weight: 600;
-    cursor: grab;
-    user-select: none;
-    animation: aparecer 0.3s ease-out;
-}
-
-.palabra-enunciado:active {
-    cursor: grabbing;
-}
-
-.palabra-enunciado.arrastrando {
-    opacity: 0.6;
-}
-
-/* Reorganización del panel izquierdo */
-.panel-control {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.controles {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.qr-section-presentador {
-    order: 3;
-}
-
-.estados {
-    order: 4;
-}
-
-.configuracion {
-    order: 5;
-}
-
-/* Estilos mejorados para arrastre */
-.palabra {
-    cursor: grab;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.palabra:active {
-    cursor: grabbing;
-    transform: scale(1.05);
-}
-
-.palabra.arrastrando {
-    opacity: 0.5;
-    transform: scale(0.95);
-}
-
-.area-enunciado.palabra-zona-objetivo {
-    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-    border: 2px dashed #2196f3;
-}
-
-.palabra-enunciado {
-    cursor: grab;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.palabra-enunciado:active {
-    cursor: grabbing;
-}
-
-.palabra-enunciado.arrastrando {
-    opacity: 0.5;
-}
-
-/* Efecto visual al tener palabras en el enunciado */
-.area-enunciado.con-palabras {
-    background: linear-gradient(135deg, #f3e5f5, #e1bee7);
-    border: 2px solid #9c27b0;
-}
-
-/* ===== ESTILOS MEJORADOS PARA SISTEMA DE ARRASTRE ===== */
-
-/* Palabras usadas en la nube */
-.palabra[style*="opacity: 0.3"] {
-    text-decoration: line-through;
-    cursor: not-allowed;
-    background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important;
-}
-
-/* Efectos de arrastre mejorados */
-.palabra.arrastrando {
-    opacity: 0.4 !important;
-    transform: scale(0.9) rotate(-5deg) !important;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
-    z-index: 1000;
-}
-
-/* Área de enunciado con mejor feedback */
-.area-enunciado.palabra-zona-objetivo {
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.2)) !important;
-    border: 2px dashed #3498db !important;
-    transform: scale(1.02);
-    transition: all 0.2s ease;
-}
-
-/* Palabras en el enunciado */
-.palabra-enunciado {
-    background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-weight: 600;
-    cursor: grab;
-    user-select: none;
-    animation: aparecer 0.3s ease-out;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    margin: 5px;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.palabra-enunciado:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.palabra-enunciado:active {
-    cursor: grabbing;
-    transform: scale(1.1) rotate(2deg);
-}
-
-.palabra-enunciado.arrastrando {
-    opacity: 0.6;
-    transform: scale(1.1) rotate(5deg);
-}
-
-/* Indicador visual para palabras usadas */
-.palabra-usada {
-    opacity: 0.4;
-    background: linear-gradient(135deg, #bdc3c7, #95a5a6) !important;
-    cursor: not-allowed;
-    text-decoration: line-through;
-}
-
-.palabra-usada:hover {
-    transform: none !important;
-}
-
-/* Mejoras visuales para el área de enunciado */
-.area-enunciado.con-palabras {
-    background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(39, 174, 96, 0.1)) !important;
-    border: 2px solid rgba(46, 204, 113, 0.5) !important;
-    min-height: 120px;
-}
-
-/* Efecto de soltar suave */
-@keyframes suaveAparicion {
-    from {
-        opacity: 0;
-        transform: scale(0.8) translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.palabra-enunciado {
-    animation: suaveAparicion 0.3s ease-out;
-}
-
-/* Responsive para área de enunciado */
-@media (max-width: 768px) {
-    .area-enunciado {
-        min-height: 100px;
-        padding: 15px;
-    }
-    
-    .palabra-enunciado {
-        padding: 10px 15px;
-        font-size: 0.9em;
-        margin: 3px;
-    }
-    
-    .nube-palabras {
-        min-height: 300px;
-    }
-}
-
-/* Efecto de hover mejorado para controles */
-.btn-control {
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-.btn-control:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Estados visuales mejorados */
-.estado-activo {
-    color: #2ecc71;
-    font-weight: bold;
-    text-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
-}
-
-.estado-inactivo {
-    color: #e74c3c;
-    font-weight: bold;
-    text-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
-}
-
-.contador {
-    font-weight: bold;
-    font-size: 1.2em;
-    color: #3498db;
-}
-
-/* Mejoras para la nube de palabras */
-.nube-palabras {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    align-content: flex-start;
-    min-height: 400px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    transition: all 0.3s ease;
-}
-
-/* Placeholder mejorado */
-.placeholder {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 1.3em;
-    text-align: center;
-    width: 100%;
-    margin-top: 150px;
-    font-style: italic;
-}
-
-/* Header del área de enunciado */
-.area-enunciado-container h3 {
-    color: white;
-    margin-bottom: 15px;
-    font-size: 1.3em;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.area-enunciado-container h3::before {
-    content: "💡";
-    font-size: 1.2em;
-}
-
-/* Efectos de transición suaves */
-.palabra, .palabra-enunciado, .area-enunciado {
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-/* Mejora visual para el contenedor principal */
-.nube-container {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-/* ===== ESTILOS CORREGIDOS PARA EVITAR DUPLICADOS ===== */
-
-/* Palabras usadas - ESTILOS MEJORADOS */
-.palabra.usada {
-    opacity: 0.3 !important;
-    transform: scale(0.8) !important;
-    pointer-events: none !important;
-    cursor: not-allowed !important;
-    text-decoration: line-through !important;
-    background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important;
-    transition: all 0.3s ease !important;
-}
-
-/* Asegurar que las palabras usadas no sean interactivas */
-.palabra.usada:hover {
-    transform: scale(0.8) !important;
-    cursor: not-allowed !important;
-}
-
-/* Palabras en enunciado */
-.palabra-enunciado {
-    background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-weight: 600;
-    cursor: grab;
-    user-select: none;
-    animation: suaveAparicion 0.3s ease-out;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    margin: 5px;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.palabra-enunciado:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.palabra-enunciado:active {
-    cursor: grabbing;
-}
-
-.palabra-enunciado.arrastrando {
-    opacity: 0.6;
-    transform: scale(1.1) rotate(5deg);
-}
-
-/* Animación suave para palabras nuevas */
-@keyframes suaveAparicion {
-    from {
-        opacity: 0;
-        transform: scale(0.8) translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-/* Efectos de arrastre mejorados */
-.palabra.arrastrando {
-    opacity: 0.4 !important;
-    transform: scale(0.9) rotate(-5deg) !important;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
-    z-index: 1000;
-}
-
-/* Área de enunciado con mejor feedback */
-.area-enunciado.palabra-zona-objetivo {
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.2)) !important;
-    border: 2px dashed #3498db !important;
-    transform: scale(1.02);
-    transition: all 0.2s ease;
-}
-
-/* Mejoras visuales para el área de enunciado */
-.area-enunciado.con-palabras {
-    background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(39, 174, 96, 0.1)) !important;
-    border: 2px solid rgba(46, 204, 113, 0.5) !important;
-    min-height: 120px;
-}
-
-/* Responsive para área de enunciado */
-@media (max-width: 768px) {
-    .area-enunciado {
-        min-height: 100px;
-        padding: 15px;
-    }
-    
-    .palabra-enunciado {
-        padding: 10px 15px;
-        font-size: 0.9em;
-        margin: 3px;
     }
 }
