@@ -1,6 +1,6 @@
 // Firebase v9 imports
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
-import { getDatabase, ref, set, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js';
+import { getDatabase, ref, set, onValue, update, remove, get } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -24,7 +24,7 @@ let palabras = [];
 let sesionId = null;
 let escuchandoFirebase = false;
 let palabrasEnEnunciado = new Set();
-let ultimoTimestamp = 0; // Control para evitar duplicados
+let bloqueoEnvio = false; // Bloqueo global para evitar duplicados
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -35,23 +35,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// ===== FIREBASE DATABASE - VERSIÓN SIMPLIFICADA =====
+// ===== FIREBASE DATABASE - VERSIÓN CON BLOQUEO =====
 async function inicializarSesionFirebase() {
     try {
         sesionId = 'sesion_' + Date.now();
-        ultimoTimestamp = Date.now();
         
         const datosIniciales = {
             tema: temaSesion,
             estado: 'activo',
             sesionId: sesionId,
             palabras: {},
-            timestamp: new Date().toISOString(),
-            ultimoTimestamp: ultimoTimestamp
+            timestamp: new Date().toISOString()
         };
         
         await set(ref(database, sesionId), datosIniciales);
-        console.log('Sesión Firebase inicializada:', sesionId);
+        console.log('✅ Sesión Firebase inicializada:', sesionId);
         return sesionId;
         
     } catch (error) {
@@ -67,12 +65,12 @@ function escucharCambiosFirebase() {
     }
     
     if (escuchandoFirebase) {
-        console.log('Ya se está escuchando Firebase, evitando duplicado...');
+        console.log('⚠️ Ya se está escuchando Firebase');
         return;
     }
     
     escuchandoFirebase = true;
-    console.log('Escuchando cambios para sesión:', sesionId);
+    console.log('👂 Escuchando cambios para sesión:', sesionId);
     
     const sesionRef = ref(database, sesionId);
     
@@ -83,73 +81,98 @@ function escucharCambiosFirebase() {
             const palabrasObj = data.palabras || {};
             const palabrasArray = Object.values(palabrasObj);
             
-            console.log('📥 Datos RAW de Firebase:', palabrasArray.length, 'palabras');
+            console.log('📥 Datos recibidos de Firebase:', palabrasArray.length, 'palabras');
             
-            // FILTRADO DEFINITIVO - Eliminar cualquier duplicado
+            // VERIFICACIÓN EXTREMA DE DUPLICADOS
             const palabrasUnicas = [];
             const idsVistos = new Set();
+            const textosVistos = new Set();
             
             palabrasArray.forEach(palabra => {
-                if (palabra && palabra.id && !idsVistos.has(palabra.id)) {
-                    idsVistos.add(palabra.id);
-                    palabrasUnicas.push(palabra);
+                if (palabra && palabra.id && palabra.palabra) {
+                    // Verificar por ID y por texto
+                    if (!idsVistos.has(palabra.id) && !textosVistos.has(palabra.palabra)) {
+                        idsVistos.add(palabra.id);
+                        textosVistos.add(palabra.palabra);
+                        palabrasUnicas.push(palabra);
+                    } else {
+                        console.log('🚫 Eliminando duplicado:', palabra.palabra, 'ID:', palabra.id);
+                    }
                 }
             });
             
-            // Verificar si hay cambios reales antes de actualizar
-            if (JSON.stringify(palabras) !== JSON.stringify(palabrasUnicas)) {
-                palabras = palabrasUnicas;
-                console.log('✅ Palabras actualizadas:', palabras.length, 'únicas');
-            } else {
-                console.log('ℹ️  No hay cambios en las palabras');
-            }
+            console.log('✅ Palabras después de filtrado:', palabrasUnicas.length);
             
+            // Actualizar solo si hay cambios
+            palabras = palabrasUnicas;
             temaSesion = data.tema || temaSesion;
             estadoRecepcion = data.estado || estadoRecepcion;
             
             actualizarInterfazPresentador();
             
         } else {
-            console.log('No hay datos en Firebase para:', sesionId);
+            console.log('❌ No hay datos en Firebase');
             palabras = [];
             palabrasEnEnunciado.clear();
             actualizarInterfazPresentador();
         }
     }, (error) => {
-        console.error('Error escuchando Firebase:', error);
+        console.error('💥 Error escuchando Firebase:', error);
         escuchandoFirebase = false;
     });
 }
 
 async function agregarPalabraFirebase(palabraData) {
+    if (bloqueoEnvio) {
+        console.log('⏸️ Bloqueo activado, evitando envío duplicado');
+        return false;
+    }
+    
     try {
         if (!sesionId) {
             throw new Error('No hay sesión activa');
         }
         
-        // ID único garantizado
-        const timestampActual = Date.now();
-        const palabraId = `palabra_${timestampActual}`;
+        // ACTIVAR BLOQUEO
+        bloqueoEnvio = true;
         
-        // Verificar que no sea un duplicado rápido
-        if (timestampActual <= ultimoTimestamp + 100) {
-            console.log('⏰ Evitando duplicado rápido, esperando...');
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
-        ultimoTimestamp = timestampActual;
-        
+        // ID único simple
+        const palabraId = 'palabra_' + Date.now();
         const palabraRef = ref(database, sesionId + '/palabras/' + palabraId);
         
         palabraData.id = palabraId;
-        palabraData.timestampFirebase = timestampActual;
         
+        console.log('💾 Intentando guardar palabra:', palabraData.palabra);
+        
+        // Verificar si ya existe antes de guardar
+        const snapshot = await get(ref(database, sesionId + '/palabras'));
+        const palabrasExistentes = snapshot.val() || {};
+        
+        const palabrasArray = Object.values(palabrasExistentes);
+        const yaExiste = palabrasArray.some(p => p.palabra === palabraData.palabra);
+        
+        if (yaExiste) {
+            console.log('🚫 Palabra ya existe, no se guardará:', palabraData.palabra);
+            bloqueoEnvio = false;
+            return false;
+        }
+        
+        // Guardar la palabra
         await set(palabraRef, palabraData);
-        console.log('💾 Palabra guardada en Firebase:', palabraData.palabra, 'ID:', palabraId);
+        console.log('✅ Palabra guardada exitosamente:', palabraData.palabra);
+        
+        // Desactivar bloqueo después de un tiempo
+        setTimeout(() => {
+            bloqueoEnvio = false;
+            console.log('🔓 Bloqueo desactivado');
+        }, 2000);
+        
         return true;
         
     } catch (error) {
-        console.error('Error agregando palabra:', error);
+        console.error('💥 Error agregando palabra:', error);
+        // Desactivar bloqueo en caso de error
+        bloqueoEnvio = false;
         throw error;
     }
 }
@@ -162,8 +185,7 @@ async function actualizarEstadoFirebase() {
         await update(sesionRef, {
             estado: estadoRecepcion,
             tema: temaSesion,
-            timestamp: new Date().toISOString(),
-            ultimoTimestamp: Date.now()
+            timestamp: new Date().toISOString()
         });
     } catch (error) {
         console.error('Error actualizando estado:', error);
@@ -178,10 +200,10 @@ async function limpiarPalabrasFirebase() {
         
         const palabrasRef = ref(database, sesionId + '/palabras');
         await remove(palabrasRef);
-        console.log('🗑️  Palabras limpiadas de Firebase');
+        console.log('🗑️ Palabras limpiadas de Firebase');
         escuchandoFirebase = false;
         palabrasEnEnunciado.clear();
-        ultimoTimestamp = Date.now();
+        bloqueoEnvio = false;
         return true;
         
     } catch (error) {
@@ -366,8 +388,9 @@ function organizarGrid() {
 
 // ===== PRESENTADOR =====
 async function iniciarPresentador() {
-    console.log('Iniciando presentador...');
+    console.log('🎬 Iniciando presentador...');
     palabrasEnEnunciado.clear();
+    bloqueoEnvio = false;
     actualizarInterfazPresentador();
     generarQR();
 }
@@ -396,6 +419,7 @@ async function limpiarTodo() {
         try {
             await limpiarPalabrasFirebase();
             palabrasEnEnunciado.clear();
+            bloqueoEnvio = false;
             actualizarInterfazPresentador();
             alert('✅ Palabras limpiadas correctamente');
         } catch (error) {
@@ -568,7 +592,7 @@ function copiarURL() {
 
 // ===== AUDIENCIA =====
 function iniciarAudiencia() {
-    console.log('Iniciando audiencia...');
+    console.log('🎬 Iniciando audiencia...');
     procesarParametrosURL();
     verificarEstado();
     
@@ -577,13 +601,21 @@ function iniciarAudiencia() {
     
     if (input) {
         input.focus();
+        // SOLO UN event listener para Enter
         input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') enviarPalabra();
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevenir comportamiento por defecto
+                enviarPalabra();
+            }
         });
     }
     
     if (boton) {
-        boton.addEventListener('click', enviarPalabra);
+        // SOLO UN event listener para click
+        boton.addEventListener('click', function(e) {
+            e.preventDefault();
+            enviarPalabra();
+        });
     }
 }
 
@@ -636,8 +668,15 @@ function verificarEstado() {
 }
 
 async function enviarPalabra() {
+    // Verificar bloqueo inmediatamente
+    if (bloqueoEnvio) {
+        console.log('⏸️ Envío bloqueado, esperando...');
+        return;
+    }
+    
     try {
         const input = document.getElementById('palabraInput');
+        const boton = document.getElementById('btnEnviar');
         const palabra = input.value.trim();
         
         if (!palabra) {
@@ -660,9 +699,9 @@ async function enviarPalabra() {
             return;
         }
         
-        // Deshabilitar botón temporalmente para evitar múltiples envíos
-        const boton = document.getElementById('btnEnviar');
+        // Deshabilitar inmediatamente
         boton.disabled = true;
+        input.disabled = true;
         
         const nuevaPalabra = {
             palabra: palabra,
@@ -671,24 +710,34 @@ async function enviarPalabra() {
             sesionId: sesionId
         };
         
-        await agregarPalabraFirebase(nuevaPalabra);
-        mostrarMensaje('✅ Idea enviada correctamente', 'success');
+        console.log('📤 Enviando palabra:', palabra);
         
-        input.value = '';
-        input.focus();
+        const resultado = await agregarPalabraFirebase(nuevaPalabra);
         
-        // Rehabilitar botón después de 1 segundo
+        if (resultado) {
+            mostrarMensaje('✅ Idea enviada correctamente', 'success');
+            input.value = '';
+        } else {
+            mostrarMensaje('⚠️ La palabra ya fue enviada', 'warning');
+        }
+        
+        // Rehabilitar después de 2 segundos
         setTimeout(() => {
+            input.disabled = false;
             boton.disabled = false;
-        }, 1000);
+            input.focus();
+        }, 2000);
         
     } catch (error) {
-        console.error('Error enviando palabra:', error);
+        console.error('💥 Error enviando palabra:', error);
         mostrarMensaje('❌ Error al enviar la idea', 'error');
         
-        // Rehabilitar botón en caso de error
+        // Rehabilitar en caso de error
+        const input = document.getElementById('palabraInput');
         const boton = document.getElementById('btnEnviar');
+        input.disabled = false;
         boton.disabled = false;
+        input.focus();
     }
 }
 
